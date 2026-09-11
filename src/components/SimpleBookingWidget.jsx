@@ -18,6 +18,7 @@ import {
 import { collection, getDocs, doc, getDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { SERVICES as localServices, NAIL_SHAPES, NAIL_LENGTHS, ART_TIERS, ADD_ONS } from '../data/servicesData';
+import PinkMistCanvas from './PinkMistCanvas';
 
 export default function SimpleBookingWidget() {
   const [step, setStep] = useState('services'); // 'services' | 'datetime' | 'details' | 'confirmation'
@@ -276,6 +277,9 @@ Instagram: @auricc_nails
 
   return (
     <div className="widget-wrapper">
+      {/* Dynamic Falling Pink Mist & Floating Particles */}
+      <PinkMistCanvas />
+
       {/* Dynamic Ambient Glass Orbs */}
       <div className="bg-orb orb-pink-1"></div>
       <div className="bg-orb orb-pink-2"></div>

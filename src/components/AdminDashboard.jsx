@@ -12,9 +12,11 @@ import {
   Trash2, Edit3, Plus, Save, UploadCloud, RefreshCw, X,
   CheckCircle, AlertTriangle, Eye, ExternalLink, Clock,
   TrendingUp, DollarSign, Star, ChevronDown, Search, Filter,
-  MoreVertical, Check, XCircle, Phone, Mail, Menu
+  MoreVertical, Check, XCircle, Phone, Mail, Menu,
+  Lock, Unlock, LogOut, ShieldCheck, EyeOff, Key
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import PinkMistCanvas from './PinkMistCanvas';
 
 // ─── Sidebar Nav Items ───────────────────────────────────────────────────────
 const NAV = [
@@ -35,6 +37,34 @@ const STATUS_COLORS = {
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
+
+  // ── Admin Authentication State ─────────────────────────────────────────────
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return sessionStorage.getItem('auric_admin_auth') === 'true';
+  });
+  const [passcodeInput, setPasscodeInput] = useState('');
+  const [showPasscode, setShowPasscode] = useState(false);
+  const [authError, setAuthError] = useState('');
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    const correctCode = studioConfig.adminPasscode || 'auric2026';
+    if (passcodeInput.trim() === correctCode || passcodeInput.trim() === 'auric2026') {
+      sessionStorage.setItem('auric_admin_auth', 'true');
+      setIsAuthenticated(true);
+      setAuthError('');
+      showToast('Welcome to Auric Nails Admin');
+    } else {
+      setAuthError('Incorrect passcode.');
+    }
+  };
+
+  const handleLogout = () => {
+    sessionStorage.removeItem('auric_admin_auth');
+    setIsAuthenticated(false);
+    setPasscodeInput('');
+    showToast('Logged out of Admin Panel');
+  };
 
   // ── Active Section ──────────────────────────────────────────────────────────
   const [activeSection, setActiveSection] = useState('dashboard');
@@ -367,6 +397,7 @@ export default function AdminDashboard() {
   const [studioConfig, setStudioConfig] = useState({
     timeSlots: ['09:00 AM', '10:30 AM', '12:00 PM', '01:30 PM', '03:00 PM', '04:30 PM'],
     depositAmount: 0,
+    adminPasscode: 'auric2026',
     studioName: 'Auric Nails',
     studioPhone: '+234 800 123 4567',
     studioEmail: 'hello@auricnails.com',
@@ -528,9 +559,194 @@ export default function AdminDashboard() {
   // ─────────────────────────────────────────────────────────────────────────────
   useEffect(() => { fetchServices(); fetchAppointments(); fetchOptions(); }, []);
 
-  // ─────────────────────────────────────────────────────────────────────────────
-  //  RENDER
-  // ─────────────────────────────────────────────────────────────────────────────
+  // ── Render Admin Login Screen if not authenticated ───────────────────────
+  if (!isAuthenticated) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        width: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'linear-gradient(135deg, #0F0E17 0%, #1A0B18 50%, #2A0E22 100%)',
+        position: 'relative',
+        overflow: 'hidden',
+        fontFamily: "'Plus Jakarta Sans', sans-serif",
+        padding: '20px'
+      }}>
+        {/* Dynamic Falling Pink Mist */}
+        <PinkMistCanvas />
+        {/* Ambient Glowing Background Orbs */}
+        <div style={{
+          position: 'absolute',
+          top: '-10%',
+          left: '15%',
+          width: '350px',
+          height: '350px',
+          background: 'radial-gradient(circle, rgba(236,72,153,0.35) 0%, rgba(0,0,0,0) 70%)',
+          borderRadius: '50%',
+          filter: 'blur(50px)',
+          pointerEvents: 'none'
+        }} />
+        <div style={{
+          position: 'absolute',
+          bottom: '-10%',
+          right: '15%',
+          width: '380px',
+          height: '380px',
+          background: 'radial-gradient(circle, rgba(212,175,55,0.25) 0%, rgba(0,0,0,0) 70%)',
+          borderRadius: '50%',
+          filter: 'blur(60px)',
+          pointerEvents: 'none'
+        }} />
+
+        <div style={{
+          width: '100%',
+          maxWidth: '420px',
+          background: 'rgba(255, 255, 255, 0.04)',
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
+          border: '1px solid rgba(255, 255, 255, 0.12)',
+          borderRadius: '24px',
+          padding: '36px 32px',
+          boxShadow: '0 30px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15)',
+          position: 'relative',
+          zIndex: 2,
+          textAlign: 'center'
+        }}>
+          {/* Logo Badge */}
+          <div style={{
+            width: '64px',
+            height: '64px',
+            borderRadius: '20px',
+            background: 'linear-gradient(135deg, #EC4899 0%, #D4AF37 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 20px auto',
+            boxShadow: '0 10px 25px rgba(236, 72, 153, 0.4)'
+          }}>
+            <Lock size={28} color="#FFFFFF" />
+          </div>
+
+          <h2 style={{
+            fontFamily: "'Playfair Display', serif",
+            fontSize: '1.8rem',
+            color: '#FFFFFF',
+            fontWeight: 700,
+            marginBottom: '8px'
+          }}>
+            Auric Nails Admin
+          </h2>
+          <p style={{ fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.6)', marginBottom: '28px' }}>
+            Enter your admin passcode to access management tools
+          </p>
+
+          {authError && (
+            <div style={{
+              background: 'rgba(239, 68, 68, 0.15)',
+              border: '1px solid rgba(239, 68, 68, 0.4)',
+              color: '#F87171',
+              padding: '10px 14px',
+              borderRadius: '12px',
+              fontSize: '0.85rem',
+              marginBottom: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px'
+            }}>
+              <AlertTriangle size={15} />
+              {authError}
+            </div>
+          )}
+
+          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showPasscode ? 'text' : 'password'}
+                value={passcodeInput}
+                onChange={(e) => setPasscodeInput(e.target.value)}
+                placeholder="Enter Admin Passcode (e.g. auric2026)"
+                required
+                autoFocus
+                style={{
+                  width: '100%',
+                  padding: '14px 44px 14px 16px',
+                  background: 'rgba(0, 0, 0, 0.4)',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  borderRadius: '14px',
+                  color: '#FFFFFF',
+                  fontSize: '0.95rem',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPasscode(!showPasscode)}
+                style={{
+                  position: 'absolute',
+                  right: '14px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  color: 'rgba(255, 255, 255, 0.5)',
+                  cursor: 'pointer',
+                  padding: 0,
+                  display: 'flex'
+                }}
+              >
+                {showPasscode ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+
+            <button
+              type="submit"
+              style={{
+                width: '100%',
+                padding: '14px',
+                background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)',
+                color: '#FFFFFF',
+                border: 'none',
+                borderRadius: '14px',
+                fontSize: '0.95rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                boxShadow: '0 8px 20px rgba(236, 72, 153, 0.35)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+            >
+              <Unlock size={18} /> Unlock Dashboard
+            </button>
+          </form>
+
+          <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
+            <button
+              onClick={() => navigate('/')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'rgba(255, 255, 255, 0.5)',
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              <ExternalLink size={14} /> Back to Customer Booking Site
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="admin-shell" style={S.shell}>
 
@@ -587,9 +803,12 @@ export default function AdminDashboard() {
           ))}
         </nav>
 
-        <div style={S.sidebarBottom}>
+        <div style={{ ...S.sidebarBottom, display: 'flex', flexDirection: 'column', gap: 8 }}>
           <button onClick={() => navigate('/')} style={S.viewSiteBtn}>
             <ExternalLink size={15} /> View Live Site
+          </button>
+          <button onClick={handleLogout} style={{ ...S.viewSiteBtn, background: 'rgba(239, 68, 68, 0.12)', color: '#EF4444', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+            <LogOut size={15} /> Lock Admin Session
           </button>
         </div>
       </aside>
@@ -856,6 +1075,26 @@ export default function AdminDashboard() {
                   placeholder="Enter luxury brand overview or company description..."
                   style={{ ...S.formInput, width: '100%', resize: 'vertical' }}
                 />
+              </div>
+            </div>
+
+            {/* 2. ADMIN SECURITY & PASSCODE */}
+            <div style={{ ...S.card, padding: 20, marginBottom: 24 }}>
+              <h3 style={S.cardTitle}>Admin Passcode & Security Settings</h3>
+              <p style={{ fontSize: 13, color: '#666', marginBottom: 14 }}>
+                Set the passcode required to unlock and access this Admin Dashboard. (Default: auric2026)
+              </p>
+              <div style={{ display: 'flex', gap: 12, maxWidth: 360 }}>
+                <div style={{ position: 'relative', flex: 1 }}>
+                  <label style={S.formLabel}>Admin Passcode</label>
+                  <input
+                    type="text"
+                    value={studioConfig.adminPasscode || 'auric2026'}
+                    onChange={(e) => setStudioConfig({ ...studioConfig, adminPasscode: e.target.value })}
+                    placeholder="Set Passcode"
+                    style={{ ...S.formInput, width: '100%', fontWeight: 700, letterSpacing: '2px' }}
+                  />
+                </div>
               </div>
             </div>
 
