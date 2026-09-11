@@ -13,8 +13,10 @@ export default function PinkMistCanvas() {
     let height = (canvas.height = window.innerHeight);
 
     const handleResize = () => {
-      width = canvas.width = window.innerWidth;
-      height = canvas.height = window.innerHeight;
+      if (Math.abs(window.innerWidth - width) > 10) {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+      }
     };
     window.addEventListener('resize', handleResize);
 

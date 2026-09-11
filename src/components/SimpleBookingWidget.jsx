@@ -15,7 +15,7 @@ import {
   Download,
   AlertCircle
 } from 'lucide-react';
-import { collection, getDocs, doc, getDoc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, addDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { SERVICES as localServices, NAIL_SHAPES, NAIL_LENGTHS, ART_TIERS, ADD_ONS } from '../data/servicesData';
 import PinkMistCanvas from './PinkMistCanvas';
@@ -141,7 +141,7 @@ export default function SimpleBookingWidget() {
           if (addons.length > 0) setAddonsList(addons);
         }
 
-        // Fetch Studio Settings & Config
+        // Initial Fetch of Studio Settings
         const configDoc = await getDoc(doc(db, 'settings', 'studioConfig'));
         if (configDoc.exists()) {
           const cData = configDoc.data();
@@ -150,7 +150,7 @@ export default function SimpleBookingWidget() {
             setSelectedTime(cData.timeSlots[0]);
           }
           if (cData.depositAmount !== undefined) setDepositAmount(Number(cData.depositAmount));
-          if (cData.studioPhone) setStudioConfig(prev => ({ ...prev, ...cData }));
+          setStudioConfig(prev => ({ ...prev, ...cData }));
         }
       } catch (error) {
         console.error("Error fetching booking options:", error);
@@ -158,6 +158,25 @@ export default function SimpleBookingWidget() {
       setLoadingServices(false);
     };
     fetchAllData();
+  }, []);
+
+  // Real-time Studio Settings & Config Listener (Syncs Admin changes instantly)
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'settings', 'studioConfig'), (snap) => {
+      if (snap.exists()) {
+        const cData = snap.data();
+        if (cData.timeSlots && cData.timeSlots.length > 0) {
+          setTimeSlotsList(cData.timeSlots);
+        }
+        if (cData.depositAmount !== undefined) {
+          setDepositAmount(Number(cData.depositAmount));
+        }
+        setStudioConfig(prev => ({ ...prev, ...cData }));
+      }
+    }, (err) => {
+      console.warn("Real-time listener notice:", err);
+    });
+    return () => unsub();
   }, []);
 
   // Client Intake Form
@@ -758,6 +777,8 @@ Instagram: @auricc_nails
         /* Dynamic Ambient Glass Background */
         .widget-wrapper {
           min-height: 100vh;
+          width: 100%;
+          max-width: 100vw;
           background: radial-gradient(circle at 50% 15%, #4A0E32 0%, #25061A 50%, #0D0209 100%);
           display: flex;
           flex-direction: column;
@@ -766,7 +787,9 @@ Instagram: @auricc_nails
           padding: 24px 20px 40px 20px;
           font-family: 'Plus Jakarta Sans', sans-serif;
           position: relative;
-          overflow: hidden;
+          overflow-x: hidden;
+          box-sizing: border-box;
+          transform: translateZ(0);
         }
 
         /* Floating Glass Orbs */
@@ -1359,12 +1382,18 @@ Instagram: @auricc_nails
 
         @media (max-width: 600px) {
           .widget-wrapper {
-            padding: 10px 6px;
+            padding: 10px 8px;
+            width: 100%;
+            max-width: 100vw;
+            overflow-x: hidden;
           }
           .app-navbar {
             padding: 10px 14px;
             margin-bottom: 12px;
             border-radius: 16px;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
           }
           .nav-brand-title {
             font-size: 1.05rem;

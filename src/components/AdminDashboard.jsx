@@ -1458,6 +1458,9 @@ export default function AdminDashboard() {
         .admin-shell {
           display: flex;
           min-height: 100vh;
+          width: 100%;
+          max-width: 100vw;
+          overflow-x: hidden;
           font-family: 'Plus Jakarta Sans', sans-serif;
           background: #F7F8FA;
         }
