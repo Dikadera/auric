@@ -29,7 +29,7 @@ const NAV = [
 
 // ─── Status badge colours ─────────────────────────────────────────────────────
 const STATUS_COLORS = {
-  pending:   { bg: '#FFF8E1', text: '#F59E0B', label: 'Pending' },
+  pending: { bg: '#FFF8E1', text: '#F59E0B', label: 'Pending' },
   confirmed: { bg: '#E8F5E9', text: '#22C55E', label: 'Confirmed' },
   completed: { bg: '#E3F2FD', text: '#3B82F6', label: 'Completed' },
   cancelled: { bg: '#FFEBEE', text: '#EF4444', label: 'Cancelled' },
@@ -667,7 +667,7 @@ export default function AdminDashboard() {
                 type={showPasscode ? 'text' : 'password'}
                 value={passcodeInput}
                 onChange={(e) => setPasscodeInput(e.target.value)}
-                placeholder="Enter Admin Passcode (e.g. auric2026)"
+                placeholder="Enter Admin Passcode"
                 required
                 autoFocus
                 style={{
@@ -1065,7 +1065,7 @@ export default function AdminDashboard() {
                   />
                 </div>
               </div>
-              
+
               <div style={{ marginTop: 18 }}>
                 <label style={S.formLabel}>Company Description</label>
                 <textarea
@@ -1102,7 +1102,7 @@ export default function AdminDashboard() {
             <div style={{ ...S.card, padding: 20, marginBottom: 24 }}>
               <h3 style={S.cardTitle}>Available Daily Time Slots</h3>
               <p style={{ fontSize: 13, color: '#666', marginBottom: 14 }}>These daily slots will appear on Step 2 of the customer booking screen.</p>
-              
+
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
                 {(studioConfig.timeSlots || []).map((slot) => (
                   <div key={slot} style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#F4F4F6', padding: '6px 14px', borderRadius: 20, border: '1px solid #E0E0E0', fontSize: 14, fontWeight: 600, color: '#1E293B' }}>
@@ -1401,9 +1401,9 @@ export default function AdminDashboard() {
               {((galleryModal.images?.length || 1) < 5) ? (
                 <div style={{ background: '#F9FAFB', borderRadius: 10, padding: 16, border: '1px dashed #CBD5E1' }}>
                   <h4 style={{ fontSize: 14, fontWeight: 600, marginBottom: 10, color: '#334155' }}>
-                    + Add Photo (Slot { (galleryModal.images?.length || 1) + 1 } of 5)
+                    + Add Photo (Slot {(galleryModal.images?.length || 1) + 1} of 5)
                   </h4>
-                  
+
                   <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                     <input
                       type="text"
@@ -1425,7 +1425,7 @@ export default function AdminDashboard() {
                     >
                       Add URL
                     </button>
-                    
+
                     <label style={{ ...S.iconBtn, cursor: 'pointer', background: '#D4AF37', color: '#FFF', border: 'none', padding: '9px 14px', borderRadius: 8, fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', fontWeight: 600 }}>
                       <UploadCloud size={15} /> Upload File
                       <input
