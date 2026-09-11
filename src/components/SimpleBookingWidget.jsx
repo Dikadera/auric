@@ -81,88 +81,74 @@ export default function SimpleBookingWidget() {
   const [selectedDate, setSelectedDate] = useState(dynamicDates[0]?.full || todayISO);
   const [selectedTime, setSelectedTime] = useState(timeSlotsList[0] || '10:30 AM');
 
+  // Real-time Firestore Listeners for Services, Shapes, Lengths, Art Tiers, Addons & Studio Config
   useEffect(() => {
-    const fetchAllData = async () => {
-      try {
-        // Fetch Services
-        const srvSnap = await getDocs(collection(db, 'services'));
-        if (!srvSnap.empty) {
-          const srvs = [];
-          srvSnap.forEach((doc) => {
-            const data = doc.data();
-            srvs.push({
-              id: doc.id,
-              name: data.name || 'Nail Service',
-              price: Number(data.price) || 0,
-              duration: data.duration || '60 mins',
-              description: data.description || '',
-              category: data.category || 'Nails',
-              imageUrl: data.imageUrl || '/images/hero.png',
-              ...data
-            });
-          });
-          if (srvs.length > 0) setServices(srvs);
-        }
-
-        // Fetch Shapes
-        const shapeSnap = await getDocs(collection(db, 'shapes'));
-        if (!shapeSnap.empty) {
-          const shapes = shapeSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-          if (shapes.length > 0) {
-            setShapesList(shapes);
-            setSelectedShape(shapes[0]);
-          }
-        }
-
-        // Fetch Lengths
-        const lengthSnap = await getDocs(collection(db, 'lengths'));
-        if (!lengthSnap.empty) {
-          const lengths = lengthSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-          if (lengths.length > 0) {
-            setLengthsList(lengths);
-            setSelectedLength(lengths[1] || lengths[0]);
-          }
-        }
-
-        // Fetch Art Tiers
-        const artSnap = await getDocs(collection(db, 'artTiers'));
-        if (!artSnap.empty) {
-          const tiers = artSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-          if (tiers.length > 0) {
-            setArtTiersList(tiers);
-            setSelectedArtTier(tiers[0]);
-          }
-        }
-
-        // Fetch Addons
-        const addonSnap = await getDocs(collection(db, 'addons'));
-        if (!addonSnap.empty) {
-          const addons = addonSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-          if (addons.length > 0) setAddonsList(addons);
-        }
-
-        // Initial Fetch of Studio Settings
-        const configDoc = await getDoc(doc(db, 'settings', 'studioConfig'));
-        if (configDoc.exists()) {
-          const cData = configDoc.data();
-          if (cData.timeSlots && cData.timeSlots.length > 0) {
-            setTimeSlotsList(cData.timeSlots);
-            setSelectedTime(cData.timeSlots[0]);
-          }
-          if (cData.depositAmount !== undefined) setDepositAmount(Number(cData.depositAmount));
-          setStudioConfig(prev => ({ ...prev, ...cData }));
-        }
-      } catch (error) {
-        console.error("Error fetching booking options:", error);
+    // Services Listener
+    const unsubServices = onSnapshot(collection(db, 'services'), (snap) => {
+      if (!snap.empty) {
+        const srvs = snap.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            name: data.name || 'Nail Service',
+            price: Number(data.price) || 0,
+            duration: data.duration || '60 mins',
+            description: data.description || '',
+            category: data.category || 'Nails',
+            imageUrl: data.imageUrl || '/images/hero.png',
+            ...data
+          };
+        });
+        if (srvs.length > 0) setServices(srvs);
       }
       setLoadingServices(false);
-    };
-    fetchAllData();
-  }, []);
+    }, (err) => console.warn('Services listener err:', err));
 
-  // Real-time Studio Settings & Config Listener (Syncs Admin changes instantly)
-  useEffect(() => {
-    const unsub = onSnapshot(doc(db, 'settings', 'studioConfig'), (snap) => {
+    // Shapes Listener
+    const unsubShapes = onSnapshot(collection(db, 'shapes'), (snap) => {
+      if (!snap.empty) {
+        const shapes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        if (shapes.length > 0) {
+          setShapesList(shapes);
+          setSelectedShape(prev => shapes.find(s => (s.id && s.id === prev?.id) || s.name === prev?.name) || shapes[0]);
+        }
+      }
+    }, (err) => console.warn('Shapes listener err:', err));
+
+    // Lengths Listener
+    const unsubLengths = onSnapshot(collection(db, 'lengths'), (snap) => {
+      if (!snap.empty) {
+        const lengths = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        if (lengths.length > 0) {
+          setLengthsList(lengths);
+          setSelectedLength(prev => lengths.find(l => (l.id && l.id === prev?.id) || l.name === prev?.name) || lengths[1] || lengths[0]);
+        }
+      }
+    }, (err) => console.warn('Lengths listener err:', err));
+
+    // Art Tiers Listener
+    const unsubArt = onSnapshot(collection(db, 'artTiers'), (snap) => {
+      if (!snap.empty) {
+        const tiers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        if (tiers.length > 0) {
+          setArtTiersList(tiers);
+          setSelectedArtTier(prev => tiers.find(t => (t.id && t.id === prev?.id) || t.name === prev?.name) || tiers[0]);
+        }
+      }
+    }, (err) => console.warn('Art Tiers listener err:', err));
+
+    // Addons Listener
+    const unsubAddons = onSnapshot(collection(db, 'addons'), (snap) => {
+      if (!snap.empty) {
+        const addons = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        if (addons.length > 0) {
+          setAddonsList(addons);
+        }
+      }
+    }, (err) => console.warn('Addons listener err:', err));
+
+    // Studio Config Listener
+    const unsubConfig = onSnapshot(doc(db, 'settings', 'studioConfig'), (snap) => {
       if (snap.exists()) {
         const cData = snap.data();
         if (cData.timeSlots && cData.timeSlots.length > 0) {
@@ -173,10 +159,16 @@ export default function SimpleBookingWidget() {
         }
         setStudioConfig(prev => ({ ...prev, ...cData }));
       }
-    }, (err) => {
-      console.warn("Real-time listener notice:", err);
-    });
-    return () => unsub();
+    }, (err) => console.warn('Studio Config listener err:', err));
+
+    return () => {
+      unsubServices();
+      unsubShapes();
+      unsubLengths();
+      unsubArt();
+      unsubAddons();
+      unsubConfig();
+    };
   }, []);
 
   // Client Intake Form
@@ -650,9 +642,13 @@ Instagram: @auricc_nails
         {/* RIGHT COLUMN: STUDIO PROFILE CARD (Matches Screenshot) */}
         <div className="widget-right-pane">
           <div className="studio-card-banner">
-            <img src="/images/hero.png" alt="Auric Nails Studio" className="banner-img" />
-            <div className="studio-avatar-badge">
-              <Sparkles size={22} color="#EC4899" />
+            <img src={studioConfig.studioCoverUrl || "/images/hero.png"} alt="Auric Nails Studio" className="banner-img" />
+            <div className="studio-avatar-badge" style={{ overflow: 'hidden', padding: studioConfig.studioLogoUrl ? 0 : undefined }}>
+              {studioConfig.studioLogoUrl ? (
+                <img src={studioConfig.studioLogoUrl} alt="Studio Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                <Sparkles size={22} color="#EC4899" />
+              )}
             </div>
           </div>
 
@@ -788,8 +784,10 @@ Instagram: @auricc_nails
           font-family: 'Plus Jakarta Sans', sans-serif;
           position: relative;
           overflow-x: hidden;
+          overflow-y: auto;
           box-sizing: border-box;
           -webkit-overflow-scrolling: touch;
+          touch-action: pan-y;
         }
 
         /* Floating Glass Orbs */

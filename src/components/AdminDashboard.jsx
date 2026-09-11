@@ -6,7 +6,7 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { seedDatabase } from '../seed';
-import { SERVICES as localServices } from '../data/servicesData';
+import { SERVICES as localServices, NAIL_SHAPES, NAIL_LENGTHS, ART_TIERS, ADD_ONS } from '../data/servicesData';
 import {
   LayoutDashboard, Scissors, Users, CalendarCheck, Settings,
   Trash2, Edit3, Plus, Save, UploadCloud, RefreshCw, X,
@@ -390,10 +390,10 @@ export default function AdminDashboard() {
   // ─────────────────────────────────────────────────────────────────────────────
   //  OPTIONS & SETTINGS STATE (Shapes, Lengths, Art Tiers, Addons, Studio Config)
   // ─────────────────────────────────────────────────────────────────────────────
-  const [shapes, setShapes] = useState([]);
-  const [lengths, setLengths] = useState([]);
-  const [artTiers, setArtTiers] = useState([]);
-  const [addons, setAddons] = useState([]);
+  const [shapes, setShapes] = useState(NAIL_SHAPES);
+  const [lengths, setLengths] = useState(NAIL_LENGTHS);
+  const [artTiers, setArtTiers] = useState(ART_TIERS);
+  const [addons, setAddons] = useState(ADD_ONS);
   const [studioConfig, setStudioConfig] = useState({
     timeSlots: ['09:00 AM', '10:30 AM', '12:00 PM', '01:30 PM', '03:00 PM', '04:30 PM'],
     depositAmount: 0,
@@ -419,30 +419,242 @@ export default function AdminDashboard() {
   const [newAddonName, setNewAddonName] = useState('');
   const [newAddonPrice, setNewAddonPrice] = useState('');
 
+  const [newArtTierName, setNewArtTierName] = useState('');
+  const [newArtTierPrice, setNewArtTierPrice] = useState('');
+  const [newArtTierDesc, setNewArtTierDesc] = useState('');
+
+  // Option Edit Modal State
+  const [optionModal, setOptionModal] = useState(null); // null | { collectionName, item }
+  const [optionForm, setOptionForm] = useState({ name: '', price: '', extra: '', icon: '', desc: '', tag: '' });
+
+  const openEditOption = (collectionName, item) => {
+    setOptionForm({
+      name: item.name || '',
+      price: item.price !== undefined ? item.price : '',
+      extra: item.extra !== undefined ? item.extra : '',
+      icon: item.icon || '',
+      desc: item.desc || '',
+      tag: item.tag || ''
+    });
+    setOptionModal({ collectionName, item });
+  };
+
+  const handleSaveOption = async () => {
+    if (!optionModal) return;
+    const { collectionName, item } = optionModal;
+    if (!optionForm.name.trim()) return showToast('Name is required', 'error');
+
+    try {
+      const payload = { name: optionForm.name.trim() };
+
+      if (collectionName === 'shapes') {
+        payload.icon = optionForm.icon || '💅';
+        payload.desc = optionForm.desc || '';
+      } else if (collectionName === 'lengths') {
+        payload.extra = Number(optionForm.extra) || 0;
+        payload.badge = payload.extra > 0 ? `+₦${Number(payload.extra).toLocaleString()}` : 'Included';
+      } else if (collectionName === 'artTiers') {
+        payload.price = Number(optionForm.price) || 0;
+        payload.desc = optionForm.desc || '';
+        payload.tag = optionForm.tag || 'Tier Art';
+      } else if (collectionName === 'addons') {
+        payload.price = Number(optionForm.price) || 0;
+        payload.desc = optionForm.desc || '';
+      }
+
+      const docId = item.id || optionForm.name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+      try {
+        await setDoc(doc(db, collectionName, docId), payload, { merge: true });
+      } catch (err) {
+        console.warn('Firestore setDoc notice:', err);
+      }
+
+      const updatedItem = { id: docId, ...payload };
+
+      if (collectionName === 'shapes') {
+        setShapes(prev => {
+          const exists = prev.some(s => s.id === docId || s.name === item.name);
+          return exists ? prev.map(s => (s.id === docId || s.name === item.name) ? updatedItem : s) : [...prev, updatedItem];
+        });
+      } else if (collectionName === 'lengths') {
+        setLengths(prev => {
+          const exists = prev.some(l => l.id === docId || l.name === item.name);
+          return exists ? prev.map(l => (l.id === docId || l.name === item.name) ? updatedItem : l) : [...prev, updatedItem];
+        });
+      } else if (collectionName === 'artTiers') {
+        setArtTiers(prev => {
+          const exists = prev.some(a => a.id === docId || a.name === item.name);
+          return exists ? prev.map(a => (a.id === docId || a.name === item.name) ? updatedItem : a) : [...prev, updatedItem];
+        });
+      } else if (collectionName === 'addons') {
+        setAddons(prev => {
+          const exists = prev.some(ad => ad.id === docId || ad.name === item.name);
+          return exists ? prev.map(ad => (ad.id === docId || ad.name === item.name) ? updatedItem : ad) : [...prev, updatedItem];
+        });
+      }
+
+      showToast('Option updated successfully!');
+      setOptionModal(null);
+    } catch (e) {
+      showToast('Error saving option: ' + e.message, 'error');
+    }
+  };
+
+  const handleAddShape = async () => {
+    if (!newShapeName.trim()) return showToast('Shape name required', 'error');
+    const newId = newShapeName.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    const newItem = { id: newId, name: newShapeName.trim(), icon: newShapeIcon || '💅', desc: 'Custom Shape' };
+    try {
+      await setDoc(doc(db, 'shapes', newId), newItem, { merge: true });
+    } catch (e) { console.warn(e); }
+    setShapes(prev => [...prev.filter(s => s.id !== newId), newItem]);
+    setNewShapeName('');
+    showToast('Nail shape added!');
+  };
+
+  const handleDeleteShape = async (id, name) => {
+    if (!window.confirm(`Delete shape "${name}"?`)) return;
+    try {
+      if (id) {
+        try { await deleteDoc(doc(db, 'shapes', id)); } catch (e) {}
+      }
+      setShapes(prev => prev.filter(s => s.id !== id && s.name !== name));
+      showToast(`Shape "${name}" deleted.`);
+    } catch (e) { showToast('Error deleting shape', 'error'); }
+  };
+
+  const handleAddLength = async () => {
+    if (!newLengthName.trim()) return showToast('Length name required', 'error');
+    const extraVal = Number(newLengthExtra) || 0;
+    const newId = newLengthName.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    const newItem = {
+      id: newId,
+      name: newLengthName.trim(),
+      extra: extraVal,
+      badge: extraVal > 0 ? `+₦${extraVal.toLocaleString()}` : 'Included'
+    };
+    try {
+      await setDoc(doc(db, 'lengths', newId), newItem, { merge: true });
+    } catch (e) { console.warn(e); }
+    setLengths(prev => [...prev.filter(l => l.id !== newId), newItem]);
+    setNewLengthName('');
+    setNewLengthExtra('');
+    showToast('Extension length added!');
+  };
+
+  const handleDeleteLength = async (id, name) => {
+    if (!window.confirm(`Delete length "${name}"?`)) return;
+    try {
+      if (id) {
+        try { await deleteDoc(doc(db, 'lengths', id)); } catch (e) {}
+      }
+      setLengths(prev => prev.filter(l => l.id !== id && l.name !== name));
+      showToast(`Length "${name}" deleted.`);
+    } catch (e) { showToast('Error deleting length', 'error'); }
+  };
+
+  const handleAddArtTier = async () => {
+    if (!newArtTierName.trim()) return showToast('Art level name required', 'error');
+    const newId = newArtTierName.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    const newItem = {
+      id: newId,
+      name: newArtTierName.trim(),
+      price: Number(newArtTierPrice) || 0,
+      desc: newArtTierDesc.trim() || 'Custom Art Level',
+      tag: 'Tier Art'
+    };
+    try {
+      await setDoc(doc(db, 'artTiers', newId), newItem, { merge: true });
+    } catch (e) { console.warn(e); }
+    setArtTiers(prev => [...prev.filter(a => a.id !== newId), newItem]);
+    setNewArtTierName('');
+    setNewArtTierPrice('');
+    setNewArtTierDesc('');
+    showToast('Nail art level added!');
+  };
+
+  const handleDeleteArtTier = async (id, name) => {
+    if (!window.confirm(`Delete art level "${name}"?`)) return;
+    try {
+      if (id) {
+        try { await deleteDoc(doc(db, 'artTiers', id)); } catch (e) {}
+      }
+      setArtTiers(prev => prev.filter(a => a.id !== id && a.name !== name));
+      showToast(`Art level "${name}" deleted.`);
+    } catch (e) { showToast('Error deleting art level', 'error'); }
+  };
+
+  const handleAddAddon = async () => {
+    if (!newAddonName.trim()) return showToast('Addon name required', 'error');
+    const newId = newAddonName.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    const newItem = {
+      id: newId,
+      name: newAddonName.trim(),
+      price: Number(newAddonPrice) || 0,
+      desc: 'Custom Service Add-on'
+    };
+    try {
+      await setDoc(doc(db, 'addons', newId), newItem, { merge: true });
+    } catch (e) { console.warn(e); }
+    setAddons(prev => [...prev.filter(ad => ad.id !== newId), newItem]);
+    setNewAddonName('');
+    setNewAddonPrice('');
+    showToast('Add-on service added!');
+  };
+
+  const handleDeleteAddon = async (id, name) => {
+    if (!window.confirm(`Delete add-on "${name}"?`)) return;
+    try {
+      if (id) {
+        try { await deleteDoc(doc(db, 'addons', id)); } catch (e) {}
+      }
+      setAddons(prev => prev.filter(ad => ad.id !== id && ad.name !== name));
+      showToast(`Add-on "${name}" deleted.`);
+    } catch (e) { showToast('Error deleting addon', 'error'); }
+  };
+
   const fetchOptions = async () => {
     setOptionsLoading(true);
     try {
       // Shapes
-      const shapeSnap = await getDocs(collection(db, 'shapes'));
-      if (!shapeSnap.empty) setShapes(shapeSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      try {
+        const shapeSnap = await getDocs(collection(db, 'shapes'));
+        if (!shapeSnap.empty) {
+          setShapes(shapeSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+        }
+      } catch (err) { console.warn('Shapes fetch notice:', err); }
 
       // Lengths
-      const lengthSnap = await getDocs(collection(db, 'lengths'));
-      if (!lengthSnap.empty) setLengths(lengthSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      try {
+        const lengthSnap = await getDocs(collection(db, 'lengths'));
+        if (!lengthSnap.empty) {
+          setLengths(lengthSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+        }
+      } catch (err) { console.warn('Lengths fetch notice:', err); }
 
       // Art Tiers
-      const artSnap = await getDocs(collection(db, 'artTiers'));
-      if (!artSnap.empty) setArtTiers(artSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      try {
+        const artSnap = await getDocs(collection(db, 'artTiers'));
+        if (!artSnap.empty) {
+          setArtTiers(artSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+        }
+      } catch (err) { console.warn('Art Tiers fetch notice:', err); }
 
       // Addons
-      const addonSnap = await getDocs(collection(db, 'addons'));
-      if (!addonSnap.empty) setAddons(addonSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      try {
+        const addonSnap = await getDocs(collection(db, 'addons'));
+        if (!addonSnap.empty) {
+          setAddons(addonSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+        }
+      } catch (err) { console.warn('Addons fetch notice:', err); }
 
       // Studio Config & Deposit & Time Slots
-      const configDoc = await getDoc(doc(db, 'settings', 'studioConfig'));
-      if (configDoc.exists()) {
-        setStudioConfig(prev => ({ ...prev, ...configDoc.data() }));
-      }
+      try {
+        const configDoc = await getDoc(doc(db, 'settings', 'studioConfig'));
+        if (configDoc.exists()) {
+          setStudioConfig(prev => ({ ...prev, ...configDoc.data() }));
+        }
+      } catch (err) { console.warn('Studio config fetch notice:', err); }
     } catch (e) {
       console.error('Error fetching studio options:', e);
     } finally {
@@ -469,77 +681,6 @@ export default function AdminDashboard() {
   const handleDeleteTimeSlot = (slotToDelete) => {
     const updated = (studioConfig.timeSlots || []).filter(s => s !== slotToDelete);
     setStudioConfig(prev => ({ ...prev, timeSlots: updated }));
-  };
-
-  const handleAddShape = async () => {
-    if (!newShapeName.trim()) return showToast('Shape name required', 'error');
-    try {
-      await addDoc(collection(db, 'shapes'), {
-        name: newShapeName.trim(),
-        icon: newShapeIcon || '💅',
-        desc: 'Custom Shape'
-      });
-      setNewShapeName('');
-      showToast('Nail shape added!');
-      fetchOptions();
-    } catch (e) { showToast('Error adding shape', 'error'); }
-  };
-
-  const handleDeleteShape = async (id, name) => {
-    if (!window.confirm(`Delete shape "${name}"?`)) return;
-    try {
-      await deleteDoc(doc(db, 'shapes', id));
-      showToast(`Shape "${name}" deleted.`);
-      fetchOptions();
-    } catch (e) { showToast('Error deleting shape', 'error'); }
-  };
-
-  const handleAddLength = async () => {
-    if (!newLengthName.trim()) return showToast('Length name required', 'error');
-    try {
-      await addDoc(collection(db, 'lengths'), {
-        name: newLengthName.trim(),
-        extra: Number(newLengthExtra) || 0,
-        badge: newLengthExtra > 0 ? `+₦${Number(newLengthExtra).toLocaleString()}` : 'Included'
-      });
-      setNewLengthName('');
-      setNewLengthExtra('');
-      showToast('Extension length added!');
-      fetchOptions();
-    } catch (e) { showToast('Error adding length', 'error'); }
-  };
-
-  const handleDeleteLength = async (id, name) => {
-    if (!window.confirm(`Delete length "${name}"?`)) return;
-    try {
-      await deleteDoc(doc(db, 'lengths', id));
-      showToast(`Length "${name}" deleted.`);
-      fetchOptions();
-    } catch (e) { showToast('Error deleting length', 'error'); }
-  };
-
-  const handleAddAddon = async () => {
-    if (!newAddonName.trim()) return showToast('Addon name required', 'error');
-    try {
-      await addDoc(collection(db, 'addons'), {
-        name: newAddonName.trim(),
-        price: Number(newAddonPrice) || 0,
-        desc: 'Custom Service Add-on'
-      });
-      setNewAddonName('');
-      setNewAddonPrice('');
-      showToast('Add-on service added!');
-      fetchOptions();
-    } catch (e) { showToast('Error adding addon', 'error'); }
-  };
-
-  const handleDeleteAddon = async (id, name) => {
-    if (!window.confirm(`Delete add-on "${name}"?`)) return;
-    try {
-      await deleteDoc(doc(db, 'addons', id));
-      showToast(`Add-on "${name}" deleted.`);
-      fetchOptions();
-    } catch (e) { showToast('Error deleting addon', 'error'); }
   };
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -1076,6 +1217,103 @@ export default function AdminDashboard() {
                   style={{ ...S.formInput, width: '100%', resize: 'vertical' }}
                 />
               </div>
+
+              {/* Profile & Cover Images Upload Section */}
+              <div style={{ marginTop: 20, paddingTop: 18, borderTop: '1px solid #EEEEEE', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
+                {/* 1. Profile Picture / Logo */}
+                <div>
+                  <label style={S.formLabel}>Studio Profile Picture (Logo / Avatar)</label>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 6 }}>
+                    <input
+                      type="text"
+                      placeholder="Paste Image URL or choose file ->"
+                      value={studioConfig.studioLogoUrl || ''}
+                      onChange={(e) => setStudioConfig({ ...studioConfig, studioLogoUrl: e.target.value })}
+                      style={{ ...S.formInput, flex: 1 }}
+                    />
+                    <label style={{ ...S.iconBtn, display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer', padding: '9px 14px', background: '#F1F3F5', borderRadius: 8, fontSize: 13, border: '1px solid #DDD', whiteSpace: 'nowrap' }}>
+                      <UploadCloud size={16} /> Upload Logo
+                      <input
+                        type="file"
+                        accept="image/*"
+                        style={{ display: 'none' }}
+                        onChange={async (e) => {
+                          const file = e.target.files && e.target.files[0];
+                          if (!file) return;
+                          try {
+                            const base64 = await compressAndConvertToBase64(file);
+                            setStudioConfig(prev => ({ ...prev, studioLogoUrl: base64 }));
+                            showToast('Profile logo attached! Click Save Settings to publish.');
+                          } catch (err) {
+                            showToast('Failed to process image file', 'error');
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
+                  {studioConfig.studioLogoUrl && (
+                    <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ width: 50, height: 50, borderRadius: '50%', overflow: 'hidden', border: '2px solid #D4AF37', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
+                        <img src={studioConfig.studioLogoUrl} alt="Logo Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setStudioConfig({ ...studioConfig, studioLogoUrl: '' })}
+                        style={{ ...S.deleteBtn, padding: '4px 8px', fontSize: 12 }}
+                      >
+                        Remove Logo
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. Cover Picture / Banner */}
+                <div>
+                  <label style={S.formLabel}>Studio Cover Picture (Banner Header)</label>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 6 }}>
+                    <input
+                      type="text"
+                      placeholder="Paste Banner URL or choose file ->"
+                      value={studioConfig.studioCoverUrl || ''}
+                      onChange={(e) => setStudioConfig({ ...studioConfig, studioCoverUrl: e.target.value })}
+                      style={{ ...S.formInput, flex: 1 }}
+                    />
+                    <label style={{ ...S.iconBtn, display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer', padding: '9px 14px', background: '#F1F3F5', borderRadius: 8, fontSize: 13, border: '1px solid #DDD', whiteSpace: 'nowrap' }}>
+                      <UploadCloud size={16} /> Upload Banner
+                      <input
+                        type="file"
+                        accept="image/*"
+                        style={{ display: 'none' }}
+                        onChange={async (e) => {
+                          const file = e.target.files && e.target.files[0];
+                          if (!file) return;
+                          try {
+                            const base64 = await compressAndConvertToBase64(file);
+                            setStudioConfig(prev => ({ ...prev, studioCoverUrl: base64 }));
+                            showToast('Cover banner attached! Click Save Settings to publish.');
+                          } catch (err) {
+                            showToast('Failed to process image file', 'error');
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
+                  {studioConfig.studioCoverUrl && (
+                    <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ width: 120, height: 50, borderRadius: 8, overflow: 'hidden', border: '1px solid #DDD', boxShadow: '0 2px 6px rgba(0,0,0,0.1)' }}>
+                        <img src={studioConfig.studioCoverUrl} alt="Cover Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setStudioConfig({ ...studioConfig, studioCoverUrl: '' })}
+                        style={{ ...S.deleteBtn, padding: '4px 8px', fontSize: 12 }}
+                      >
+                        Remove Banner
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* 2. ADMIN SECURITY & PASSCODE */}
@@ -1140,7 +1378,10 @@ export default function AdminDashboard() {
                   {shapes.map(s => (
                     <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: '#FAFAFA', borderRadius: 8, border: '1px solid #EEEEEE' }}>
                       <span style={{ fontWeight: 600, fontSize: 14 }}>{s.icon} {s.name}</span>
-                      <button onClick={() => handleDeleteShape(s.id, s.name)} style={S.deleteBtn}><Trash2 size={13} /></button>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button onClick={() => openEditOption('shapes', s)} style={S.editBtn}><Edit3 size={13} /> Edit</button>
+                        <button onClick={() => handleDeleteShape(s.id, s.name)} style={S.deleteBtn}><Trash2 size={13} /></button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1161,7 +1402,10 @@ export default function AdminDashboard() {
                         <strong style={{ fontSize: 14 }}>{l.name}</strong>
                         <span style={{ fontSize: 12, color: '#666', marginLeft: 8 }}>{l.extra > 0 ? `(+₦${Number(l.extra).toLocaleString()})` : 'Included'}</span>
                       </div>
-                      <button onClick={() => handleDeleteLength(l.id, l.name)} style={S.deleteBtn}><Trash2 size={13} /></button>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button onClick={() => openEditOption('lengths', l)} style={S.editBtn}><Edit3 size={13} /> Edit</button>
+                        <button onClick={() => handleDeleteLength(l.id, l.name)} style={S.deleteBtn}><Trash2 size={13} /></button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1173,17 +1417,47 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* 4. ADD-ONS */}
+            {/* 4. NAIL ART LEVELS */}
+            <div style={{ ...S.card, padding: 20, marginBottom: 24 }}>
+              <h3 style={S.cardTitle}>Nail Art Levels & Tiers</h3>
+              <div className="admin-addons-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12, marginTop: 14, marginBottom: 16 }}>
+                {artTiers.map(art => (
+                  <div key={art.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '12px 16px', background: '#FAFAFA', borderRadius: 10, border: '1px solid #EAEAEA' }}>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: 14 }}>{art.name}</div>
+                      <div style={{ fontSize: 13, color: '#EC4899', fontWeight: 700, marginTop: 2 }}>+₦{(art.price || 0).toLocaleString()}</div>
+                      {art.desc && <div style={{ fontSize: 12, color: '#666', marginTop: 4, lineHeight: 1.4 }}>{art.desc}</div>}
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, flexShrink: 0, marginLeft: 10 }}>
+                      <button onClick={() => openEditOption('artTiers', art)} style={S.editBtn}><Edit3 size={13} /> Edit</button>
+                      <button onClick={() => handleDeleteArtTier(art.id, art.name)} style={S.deleteBtn}><Trash2 size={13} /></button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="admin-inline-row" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', maxWidth: 640 }}>
+                <input placeholder="Art Tier Name (e.g. 3D Opulence)" value={newArtTierName} onChange={e => setNewArtTierName(e.target.value)} style={{ flex: 1, minWidth: 160, ...S.formInput }} />
+                <input placeholder="Price ₦" type="number" value={newArtTierPrice} onChange={e => setNewArtTierPrice(e.target.value)} style={{ width: 110, ...S.formInput }} />
+                <input placeholder="Short Description" value={newArtTierDesc} onChange={e => setNewArtTierDesc(e.target.value)} style={{ flex: 1, minWidth: 180, ...S.formInput }} />
+                <button onClick={handleAddArtTier} style={S.editBtn}>Add Art Level</button>
+              </div>
+            </div>
+
+            {/* 5. ADD-ONS */}
             <div style={{ ...S.card, padding: 20 }}>
               <h3 style={S.cardTitle}>Service Add-ons & Extra Services</h3>
-              <div className="admin-addons-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12, marginTop: 14, marginBottom: 16 }}>
+              <div className="admin-addons-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12, marginTop: 14, marginBottom: 16 }}>
                 {addons.map(a => (
                   <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: '#FAFAFA', borderRadius: 10, border: '1px solid #EAEAEA' }}>
                     <div>
                       <div style={{ fontWeight: 600, fontSize: 14 }}>{a.name}</div>
-                      <div style={{ fontSize: 13, color: '#D4AF37', fontWeight: 700, marginTop: 2 }}>₦{(a.price || 0).toLocaleString()}</div>
+                      <div style={{ fontSize: 13, color: '#D4AF37', fontWeight: 700, marginTop: 2 }}>+₦{(a.price || 0).toLocaleString()}</div>
                     </div>
-                    <button onClick={() => handleDeleteAddon(a.id, a.name)} style={S.deleteBtn}><Trash2 size={13} /></button>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button onClick={() => openEditOption('addons', a)} style={S.editBtn}><Edit3 size={13} /> Edit</button>
+                      <button onClick={() => handleDeleteAddon(a.id, a.name)} style={S.deleteBtn}><Trash2 size={13} /></button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1449,6 +1723,90 @@ export default function AdminDashboard() {
 
             <div style={S.modalFooter}>
               <button onClick={() => setGalleryModal(null)} style={S.saveBtn}>Done</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Customizer Item Edit Modal (Shapes, Lengths, Art Tiers, Add-ons) ────── */}
+      {optionModal !== null && (
+        <div style={S.modalBackdrop} onClick={() => setOptionModal(null)}>
+          <div style={{ ...S.modal, maxWidth: 500 }} onClick={e => e.stopPropagation()}>
+            <div style={S.modalHeader}>
+              <h3 style={S.modalTitle}>
+                Edit {optionModal.collectionName === 'shapes' ? 'Nail Shape' : optionModal.collectionName === 'lengths' ? 'Extension Length' : optionModal.collectionName === 'artTiers' ? 'Nail Art Level' : 'Service Add-on'}
+              </h3>
+              <button onClick={() => setOptionModal(null)} style={S.closeBtn}><X size={18} /></button>
+            </div>
+
+            <div style={S.modalBody}>
+              <div style={S.formGroup}>
+                <label style={S.formLabel}>Name *</label>
+                <input
+                  type="text"
+                  value={optionForm.name}
+                  onChange={e => setOptionForm({ ...optionForm, name: e.target.value })}
+                  placeholder="Item Name"
+                  style={S.formInput}
+                />
+              </div>
+
+              {optionModal.collectionName === 'shapes' && (
+                <div style={S.formGroup}>
+                  <label style={S.formLabel}>Icon / Emoji</label>
+                  <input
+                    type="text"
+                    value={optionForm.icon}
+                    onChange={e => setOptionForm({ ...optionForm, icon: e.target.value })}
+                    placeholder="e.g. 💅 or 📐"
+                    style={S.formInput}
+                  />
+                </div>
+              )}
+
+              {optionModal.collectionName === 'lengths' && (
+                <div style={S.formGroup}>
+                  <label style={S.formLabel}>Extra Cost (₦)</label>
+                  <input
+                    type="number"
+                    value={optionForm.extra}
+                    onChange={e => setOptionForm({ ...optionForm, extra: e.target.value })}
+                    placeholder="e.g. 3000 (Set 0 for included/free)"
+                    style={S.formInput}
+                  />
+                </div>
+              )}
+
+              {(optionModal.collectionName === 'artTiers' || optionModal.collectionName === 'addons') && (
+                <div style={S.formGroup}>
+                  <label style={S.formLabel}>Price (₦)</label>
+                  <input
+                    type="number"
+                    value={optionForm.price}
+                    onChange={e => setOptionForm({ ...optionForm, price: e.target.value })}
+                    placeholder="e.g. 5000"
+                    style={S.formInput}
+                  />
+                </div>
+              )}
+
+              {(optionModal.collectionName === 'shapes' || optionModal.collectionName === 'artTiers' || optionModal.collectionName === 'addons') && (
+                <div style={S.formGroup}>
+                  <label style={S.formLabel}>Description</label>
+                  <textarea
+                    rows={3}
+                    value={optionForm.desc}
+                    onChange={e => setOptionForm({ ...optionForm, desc: e.target.value })}
+                    placeholder="Enter short description or inclusion details..."
+                    style={{ ...S.formInput, resize: 'vertical' }}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div style={S.modalFooter}>
+              <button onClick={() => setOptionModal(null)} style={S.cancelBtn}>Cancel</button>
+              <button onClick={handleSaveOption} style={S.saveBtn}><Save size={15} /> Save Changes</button>
             </div>
           </div>
         </div>
