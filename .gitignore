@@ -1,0 +1,19 @@
+# Node dependencies (10,000+ internal modules - ignored by git)
+node_modules/
+.pnpm-store/
+
+# Production builds
+dist/
+build/
+
+# Logs & temp
+*.log
+.DS_Store
+.vscode/
+.idea/
+
+# Environment files (Private keys)
+.env
+.env.local
+.env.*.local
+
