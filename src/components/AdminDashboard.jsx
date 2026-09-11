@@ -409,6 +409,19 @@ export default function AdminDashboard() {
   const [newTimeSlotInput, setNewTimeSlotInput] = useState('');
   const [optionsLoading, setOptionsLoading] = useState(false);
 
+  const syncOptionsToFirestore = async (newShapes, newLengths, newArtTiers, newAddons) => {
+    try {
+      await setDoc(doc(db, 'settings', 'studioConfig'), {
+        shapesList: newShapes !== undefined ? newShapes : shapes,
+        lengthsList: newLengths !== undefined ? newLengths : lengths,
+        artTiersList: newArtTiers !== undefined ? newArtTiers : artTiers,
+        addonsList: newAddons !== undefined ? newAddons : addons,
+      }, { merge: true });
+    } catch (err) {
+      console.warn('Sync options notice:', err);
+    }
+  };
+
   // Quick Inline Add States
   const [newShapeName, setNewShapeName] = useState('');
   const [newShapeIcon, setNewShapeIcon] = useState('💅');
@@ -465,34 +478,38 @@ export default function AdminDashboard() {
       const docId = item.id || optionForm.name.toLowerCase().replace(/[^a-z0-9]/g, '_');
       try {
         await setDoc(doc(db, collectionName, docId), payload, { merge: true });
-      } catch (err) {
-        console.warn('Firestore setDoc notice:', err);
-      }
+      } catch (err) {}
 
       const updatedItem = { id: docId, ...payload };
 
+      let nextShapes = shapes;
+      let nextLengths = lengths;
+      let nextArtTiers = artTiers;
+      let nextAddons = addons;
+
       if (collectionName === 'shapes') {
-        setShapes(prev => {
-          const exists = prev.some(s => s.id === docId || s.name === item.name);
-          return exists ? prev.map(s => (s.id === docId || s.name === item.name) ? updatedItem : s) : [...prev, updatedItem];
-        });
+        nextShapes = shapes.some(s => s.id === docId || s.name === item.name)
+          ? shapes.map(s => (s.id === docId || s.name === item.name) ? updatedItem : s)
+          : [...shapes, updatedItem];
+        setShapes(nextShapes);
       } else if (collectionName === 'lengths') {
-        setLengths(prev => {
-          const exists = prev.some(l => l.id === docId || l.name === item.name);
-          return exists ? prev.map(l => (l.id === docId || l.name === item.name) ? updatedItem : l) : [...prev, updatedItem];
-        });
+        nextLengths = lengths.some(l => l.id === docId || l.name === item.name)
+          ? lengths.map(l => (l.id === docId || l.name === item.name) ? updatedItem : l)
+          : [...lengths, updatedItem];
+        setLengths(nextLengths);
       } else if (collectionName === 'artTiers') {
-        setArtTiers(prev => {
-          const exists = prev.some(a => a.id === docId || a.name === item.name);
-          return exists ? prev.map(a => (a.id === docId || a.name === item.name) ? updatedItem : a) : [...prev, updatedItem];
-        });
+        nextArtTiers = artTiers.some(a => a.id === docId || a.name === item.name)
+          ? artTiers.map(a => (a.id === docId || a.name === item.name) ? updatedItem : a)
+          : [...artTiers, updatedItem];
+        setArtTiers(nextArtTiers);
       } else if (collectionName === 'addons') {
-        setAddons(prev => {
-          const exists = prev.some(ad => ad.id === docId || ad.name === item.name);
-          return exists ? prev.map(ad => (ad.id === docId || ad.name === item.name) ? updatedItem : ad) : [...prev, updatedItem];
-        });
+        nextAddons = addons.some(ad => ad.id === docId || ad.name === item.name)
+          ? addons.map(ad => (ad.id === docId || ad.name === item.name) ? updatedItem : ad)
+          : [...addons, updatedItem];
+        setAddons(nextAddons);
       }
 
+      await syncOptionsToFirestore(nextShapes, nextLengths, nextArtTiers, nextAddons);
       showToast('Option updated successfully!');
       setOptionModal(null);
     } catch (e) {
@@ -504,10 +521,10 @@ export default function AdminDashboard() {
     if (!newShapeName.trim()) return showToast('Shape name required', 'error');
     const newId = newShapeName.toLowerCase().replace(/[^a-z0-9]/g, '_');
     const newItem = { id: newId, name: newShapeName.trim(), icon: newShapeIcon || '💅', desc: 'Custom Shape' };
-    try {
-      await setDoc(doc(db, 'shapes', newId), newItem, { merge: true });
-    } catch (e) { console.warn(e); }
-    setShapes(prev => [...prev.filter(s => s.id !== newId), newItem]);
+    try { await setDoc(doc(db, 'shapes', newId), newItem, { merge: true }); } catch (e) {}
+    const next = [...shapes.filter(s => s.id !== newId), newItem];
+    setShapes(next);
+    await syncOptionsToFirestore(next, lengths, artTiers, addons);
     setNewShapeName('');
     showToast('Nail shape added!');
   };
@@ -515,10 +532,10 @@ export default function AdminDashboard() {
   const handleDeleteShape = async (id, name) => {
     if (!window.confirm(`Delete shape "${name}"?`)) return;
     try {
-      if (id) {
-        try { await deleteDoc(doc(db, 'shapes', id)); } catch (e) {}
-      }
-      setShapes(prev => prev.filter(s => s.id !== id && s.name !== name));
+      if (id) { try { await deleteDoc(doc(db, 'shapes', id)); } catch (e) {} }
+      const next = shapes.filter(s => s.id !== id && s.name !== name);
+      setShapes(next);
+      await syncOptionsToFirestore(next, lengths, artTiers, addons);
       showToast(`Shape "${name}" deleted.`);
     } catch (e) { showToast('Error deleting shape', 'error'); }
   };
@@ -533,10 +550,10 @@ export default function AdminDashboard() {
       extra: extraVal,
       badge: extraVal > 0 ? `+₦${extraVal.toLocaleString()}` : 'Included'
     };
-    try {
-      await setDoc(doc(db, 'lengths', newId), newItem, { merge: true });
-    } catch (e) { console.warn(e); }
-    setLengths(prev => [...prev.filter(l => l.id !== newId), newItem]);
+    try { await setDoc(doc(db, 'lengths', newId), newItem, { merge: true }); } catch (e) {}
+    const next = [...lengths.filter(l => l.id !== newId), newItem];
+    setLengths(next);
+    await syncOptionsToFirestore(shapes, next, artTiers, addons);
     setNewLengthName('');
     setNewLengthExtra('');
     showToast('Extension length added!');
@@ -545,10 +562,10 @@ export default function AdminDashboard() {
   const handleDeleteLength = async (id, name) => {
     if (!window.confirm(`Delete length "${name}"?`)) return;
     try {
-      if (id) {
-        try { await deleteDoc(doc(db, 'lengths', id)); } catch (e) {}
-      }
-      setLengths(prev => prev.filter(l => l.id !== id && l.name !== name));
+      if (id) { try { await deleteDoc(doc(db, 'lengths', id)); } catch (e) {} }
+      const next = lengths.filter(l => l.id !== id && l.name !== name);
+      setLengths(next);
+      await syncOptionsToFirestore(shapes, next, artTiers, addons);
       showToast(`Length "${name}" deleted.`);
     } catch (e) { showToast('Error deleting length', 'error'); }
   };
@@ -563,10 +580,10 @@ export default function AdminDashboard() {
       desc: newArtTierDesc.trim() || 'Custom Art Level',
       tag: 'Tier Art'
     };
-    try {
-      await setDoc(doc(db, 'artTiers', newId), newItem, { merge: true });
-    } catch (e) { console.warn(e); }
-    setArtTiers(prev => [...prev.filter(a => a.id !== newId), newItem]);
+    try { await setDoc(doc(db, 'artTiers', newId), newItem, { merge: true }); } catch (e) {}
+    const next = [...artTiers.filter(a => a.id !== newId), newItem];
+    setArtTiers(next);
+    await syncOptionsToFirestore(shapes, lengths, next, addons);
     setNewArtTierName('');
     setNewArtTierPrice('');
     setNewArtTierDesc('');
@@ -576,10 +593,10 @@ export default function AdminDashboard() {
   const handleDeleteArtTier = async (id, name) => {
     if (!window.confirm(`Delete art level "${name}"?`)) return;
     try {
-      if (id) {
-        try { await deleteDoc(doc(db, 'artTiers', id)); } catch (e) {}
-      }
-      setArtTiers(prev => prev.filter(a => a.id !== id && a.name !== name));
+      if (id) { try { await deleteDoc(doc(db, 'artTiers', id)); } catch (e) {} }
+      const next = artTiers.filter(a => a.id !== id && a.name !== name);
+      setArtTiers(next);
+      await syncOptionsToFirestore(shapes, lengths, next, addons);
       showToast(`Art level "${name}" deleted.`);
     } catch (e) { showToast('Error deleting art level', 'error'); }
   };
@@ -593,10 +610,10 @@ export default function AdminDashboard() {
       price: Number(newAddonPrice) || 0,
       desc: 'Custom Service Add-on'
     };
-    try {
-      await setDoc(doc(db, 'addons', newId), newItem, { merge: true });
-    } catch (e) { console.warn(e); }
-    setAddons(prev => [...prev.filter(ad => ad.id !== newId), newItem]);
+    try { await setDoc(doc(db, 'addons', newId), newItem, { merge: true }); } catch (e) {}
+    const next = [...addons.filter(ad => ad.id !== newId), newItem];
+    setAddons(next);
+    await syncOptionsToFirestore(shapes, lengths, artTiers, next);
     setNewAddonName('');
     setNewAddonPrice('');
     showToast('Add-on service added!');
@@ -605,10 +622,10 @@ export default function AdminDashboard() {
   const handleDeleteAddon = async (id, name) => {
     if (!window.confirm(`Delete add-on "${name}"?`)) return;
     try {
-      if (id) {
-        try { await deleteDoc(doc(db, 'addons', id)); } catch (e) {}
-      }
-      setAddons(prev => prev.filter(ad => ad.id !== id && ad.name !== name));
+      if (id) { try { await deleteDoc(doc(db, 'addons', id)); } catch (e) {} }
+      const next = addons.filter(ad => ad.id !== id && ad.name !== name);
+      setAddons(next);
+      await syncOptionsToFirestore(shapes, lengths, artTiers, next);
       showToast(`Add-on "${name}" deleted.`);
     } catch (e) { showToast('Error deleting addon', 'error'); }
   };
@@ -616,15 +633,21 @@ export default function AdminDashboard() {
   const fetchOptions = async () => {
     setOptionsLoading(true);
     try {
-      // Shapes
+      const configDoc = await getDoc(doc(db, 'settings', 'studioConfig'));
+      if (configDoc.exists()) {
+        const cData = configDoc.data();
+        if (cData.shapesList && cData.shapesList.length > 0) setShapes(cData.shapesList);
+        if (cData.lengthsList && cData.lengthsList.length > 0) setLengths(cData.lengthsList);
+        if (cData.artTiersList && cData.artTiersList.length > 0) setArtTiers(cData.artTiersList);
+        if (cData.addonsList && cData.addonsList.length > 0) setAddons(cData.addonsList);
+        setStudioConfig(prev => ({ ...prev, ...cData }));
+      }
+
+      // Also try fetching collection snaps
       try {
         const shapeSnap = await getDocs(collection(db, 'shapes'));
-        if (!shapeSnap.empty) {
-          setShapes(shapeSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-        }
+        if (!shapeSnap.empty) setShapes(shapeSnap.docs.map(d => ({ id: d.id, ...d.data() })));
       } catch (err) { console.warn('Shapes fetch notice:', err); }
-
-      // Lengths
       try {
         const lengthSnap = await getDocs(collection(db, 'lengths'));
         if (!lengthSnap.empty) {

@@ -151,6 +151,18 @@ export default function SimpleBookingWidget() {
     const unsubConfig = onSnapshot(doc(db, 'settings', 'studioConfig'), (snap) => {
       if (snap.exists()) {
         const cData = snap.data();
+        if (cData.shapesList && Array.isArray(cData.shapesList) && cData.shapesList.length > 0) {
+          setShapesList(cData.shapesList);
+        }
+        if (cData.lengthsList && Array.isArray(cData.lengthsList) && cData.lengthsList.length > 0) {
+          setLengthsList(cData.lengthsList);
+        }
+        if (cData.artTiersList && Array.isArray(cData.artTiersList) && cData.artTiersList.length > 0) {
+          setArtTiersList(cData.artTiersList);
+        }
+        if (cData.addonsList && Array.isArray(cData.addonsList) && cData.addonsList.length > 0) {
+          setAddonsList(cData.addonsList);
+        }
         if (cData.timeSlots && cData.timeSlots.length > 0) {
           setTimeSlotsList(cData.timeSlots);
         }
