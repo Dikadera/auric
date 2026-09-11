@@ -100,8 +100,8 @@ export default function PinkMistCanvas() {
         width: '100vw',
         height: '100vh',
         pointerEvents: 'none',
-        zIndex: 0,
-        opacity: 0.9
+        zIndex: 20,
+        opacity: 0.95
       }}
     />
   );

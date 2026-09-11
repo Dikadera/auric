@@ -5,25 +5,26 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-html, body {
+html {
   width: 100%;
-  max-width: 100%;
-  overflow-x: hidden !important;
-  position: relative;
-  touch-action: manipulation;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 body {
+  width: 100%;
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   background-color: #0D0209;
   color: #111111;
-  min-height: 100vh;
   -webkit-font-smoothing: antialiased;
+  -webkit-overflow-scrolling: touch;
 }
 
 #root {
   width: 100%;
-  max-width: 100%;
   overflow-x: hidden;
 }
 

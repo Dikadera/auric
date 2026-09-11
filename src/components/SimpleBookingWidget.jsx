@@ -778,7 +778,7 @@ Instagram: @auricc_nails
         .widget-wrapper {
           min-height: 100vh;
           width: 100%;
-          max-width: 100vw;
+          max-width: 100%;
           background: radial-gradient(circle at 50% 15%, #4A0E32 0%, #25061A 50%, #0D0209 100%);
           display: flex;
           flex-direction: column;
@@ -789,14 +789,14 @@ Instagram: @auricc_nails
           position: relative;
           overflow-x: hidden;
           box-sizing: border-box;
-          transform: translateZ(0);
+          -webkit-overflow-scrolling: touch;
         }
 
         /* Floating Glass Orbs */
         .bg-orb {
           position: absolute;
           border-radius: 50%;
-          pointer-events: none;
+          pointer-events: none !important;
           z-index: 1;
         }
         .orb-pink-1 {
@@ -940,7 +940,9 @@ Instagram: @auricc_nails
           padding: 36px 40px;
           display: flex;
           flex-direction: column;
-          background: #FFFFFF;
+          background: rgba(255, 255, 255, 0.92);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
         }
         .widget-header {
           display: flex;
