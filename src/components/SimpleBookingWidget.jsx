@@ -75,6 +75,31 @@ export default function SimpleBookingWidget() {
     return dates;
   };
 
+  // WhatsApp and Phone Helper Generators
+  const getFormattedWhatsAppUrl = (phoneInput) => {
+    const defaultNum = '2347087490482';
+    if (!phoneInput) return `https://wa.me/${defaultNum}`;
+    let digits = String(phoneInput).replace(/@/g, '').replace(/[^0-9]/g, '');
+    if (digits.startsWith('0') && digits.length === 11) {
+      digits = '234' + digits.slice(1);
+    } else if (digits.startsWith('0') && digits.length === 10) {
+      digits = '234' + digits;
+    }
+    if (!digits || digits.length < 5) {
+      digits = defaultNum;
+    }
+    return `https://wa.me/${digits}`;
+  };
+
+  const getFormattedTelUrl = (phoneInput) => {
+    if (!phoneInput) return 'tel:+2347087490482';
+    let clean = String(phoneInput).replace(/@/g, '').trim();
+    if (!clean.startsWith('+') && clean.startsWith('0') && clean.length === 11) {
+      clean = '+234' + clean.slice(1);
+    }
+    return `tel:${clean.replace(/\s+/g, '')}`;
+  };
+
   const dynamicDates = getDynamicUpcomingDates();
   const todayISO = new Date().toISOString().split('T')[0];
   const [selectedDate, setSelectedDate] = useState(dynamicDates[0]?.full || todayISO);
@@ -327,7 +352,7 @@ Instagram: @auricc_nails
             <span className="nav-item-text">{studioConfig.studioInstagram || '@auricc_nails'}</span>
           </a>
           <a
-            href={`https://wa.me/${(studioConfig.studioPhone || '2348001234567').replace(/[^0-9]/g, '')}`}
+            href={getFormattedWhatsAppUrl(studioConfig.studioPhone)}
             target="_blank"
             rel="noreferrer"
             className="nav-item-link"
@@ -698,15 +723,15 @@ Instagram: @auricc_nails
             {/* Contact Items List matching Screenshot */}
             <div className="contact-list">
               <a
-                href={`tel:${(studioConfig.studioPhone || '2348001234567').replace(/\s+/g, '')}`}
+                href={getFormattedTelUrl(studioConfig.studioPhone)}
                 className="contact-item link-item"
               >
                 <Phone size={16} className="item-icon" />
-                <span>{studioConfig.studioPhone || '+234 800 123 4567'}</span>
+                <span>{studioConfig.studioPhone || '+234 708 749 0482'}</span>
               </a>
 
               <a
-                href={`https://wa.me/${(studioConfig.studioPhone || '2348001234567').replace(/[^0-9]/g, '')}`}
+                href={getFormattedWhatsAppUrl(studioConfig.studioPhone)}
                 target="_blank"
                 rel="noreferrer"
                 className="contact-item link-item"
