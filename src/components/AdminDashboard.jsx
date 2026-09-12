@@ -468,7 +468,9 @@ export default function AdminDashboard() {
       const docId = item.id || optionForm.name.toLowerCase().replace(/[^a-z0-9]/g, '_');
       try {
         await setDoc(doc(db, collectionName, docId), payload, { merge: true });
-      } catch (err) {}
+      } catch (err) {
+        console.error(`Error writing to ${collectionName}:`, err);
+      }
 
       const updatedItem = { id: docId, ...payload };
 
@@ -511,7 +513,7 @@ export default function AdminDashboard() {
     if (!newShapeName.trim()) return showToast('Shape name required', 'error');
     const newId = newShapeName.toLowerCase().replace(/[^a-z0-9]/g, '_');
     const newItem = { id: newId, name: newShapeName.trim(), icon: newShapeIcon || '💅', desc: 'Custom Shape' };
-    try { await setDoc(doc(db, 'shapes', newId), newItem, { merge: true }); } catch (e) {}
+    try { await setDoc(doc(db, 'shapes', newId), newItem, { merge: true }); } catch (e) { console.error('Add shape err:', e); }
     const next = [...shapes.filter(s => s.id !== newId), newItem];
     setShapes(next);
     await syncOptionsToFirestore(next, lengths, artTiers, addons);
@@ -522,7 +524,7 @@ export default function AdminDashboard() {
   const handleDeleteShape = async (id, name) => {
     if (!window.confirm(`Delete shape "${name}"?`)) return;
     try {
-      if (id) { try { await deleteDoc(doc(db, 'shapes', id)); } catch (e) {} }
+      if (id) { try { await deleteDoc(doc(db, 'shapes', id)); } catch (e) { console.error('Delete shape doc err:', e); } }
       const next = shapes.filter(s => s.id !== id && s.name !== name);
       setShapes(next);
       await syncOptionsToFirestore(next, lengths, artTiers, addons);
@@ -540,7 +542,7 @@ export default function AdminDashboard() {
       extra: extraVal,
       badge: extraVal > 0 ? `+₦${extraVal.toLocaleString()}` : 'Included'
     };
-    try { await setDoc(doc(db, 'lengths', newId), newItem, { merge: true }); } catch (e) {}
+    try { await setDoc(doc(db, 'lengths', newId), newItem, { merge: true }); } catch (e) { console.error('Add length err:', e); }
     const next = [...lengths.filter(l => l.id !== newId), newItem];
     setLengths(next);
     await syncOptionsToFirestore(shapes, next, artTiers, addons);
@@ -552,7 +554,7 @@ export default function AdminDashboard() {
   const handleDeleteLength = async (id, name) => {
     if (!window.confirm(`Delete length "${name}"?`)) return;
     try {
-      if (id) { try { await deleteDoc(doc(db, 'lengths', id)); } catch (e) {} }
+      if (id) { try { await deleteDoc(doc(db, 'lengths', id)); } catch (e) { console.error('Delete length doc err:', e); } }
       const next = lengths.filter(l => l.id !== id && l.name !== name);
       setLengths(next);
       await syncOptionsToFirestore(shapes, next, artTiers, addons);
@@ -570,7 +572,7 @@ export default function AdminDashboard() {
       desc: newArtTierDesc.trim() || 'Custom Art Level',
       tag: 'Tier Art'
     };
-    try { await setDoc(doc(db, 'artTiers', newId), newItem, { merge: true }); } catch (e) {}
+    try { await setDoc(doc(db, 'artTiers', newId), newItem, { merge: true }); } catch (e) { console.error('Add art tier err:', e); }
     const next = [...artTiers.filter(a => a.id !== newId), newItem];
     setArtTiers(next);
     await syncOptionsToFirestore(shapes, lengths, next, addons);
@@ -583,7 +585,7 @@ export default function AdminDashboard() {
   const handleDeleteArtTier = async (id, name) => {
     if (!window.confirm(`Delete art level "${name}"?`)) return;
     try {
-      if (id) { try { await deleteDoc(doc(db, 'artTiers', id)); } catch (e) {} }
+      if (id) { try { await deleteDoc(doc(db, 'artTiers', id)); } catch (e) { console.error('Delete art tier doc err:', e); } }
       const next = artTiers.filter(a => a.id !== id && a.name !== name);
       setArtTiers(next);
       await syncOptionsToFirestore(shapes, lengths, next, addons);
@@ -600,7 +602,7 @@ export default function AdminDashboard() {
       price: Number(newAddonPrice) || 0,
       desc: 'Custom Service Add-on'
     };
-    try { await setDoc(doc(db, 'addons', newId), newItem, { merge: true }); } catch (e) {}
+    try { await setDoc(doc(db, 'addons', newId), newItem, { merge: true }); } catch (e) { console.error('Add addon err:', e); }
     const next = [...addons.filter(ad => ad.id !== newId), newItem];
     setAddons(next);
     await syncOptionsToFirestore(shapes, lengths, artTiers, next);
@@ -612,7 +614,7 @@ export default function AdminDashboard() {
   const handleDeleteAddon = async (id, name) => {
     if (!window.confirm(`Delete add-on "${name}"?`)) return;
     try {
-      if (id) { try { await deleteDoc(doc(db, 'addons', id)); } catch (e) {} }
+      if (id) { try { await deleteDoc(doc(db, 'addons', id)); } catch (e) { console.error('Delete addon doc err:', e); } }
       const next = addons.filter(ad => ad.id !== id && ad.name !== name);
       setAddons(next);
       await syncOptionsToFirestore(shapes, lengths, artTiers, next);
@@ -1395,15 +1397,19 @@ export default function AdminDashboard() {
               <div style={{ ...S.card, padding: 20 }}>
                 <h3 style={S.cardTitle}>Nail Shapes</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12, marginBottom: 16 }}>
-                  {shapes.map(s => (
-                    <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: '#FAFAFA', borderRadius: 8, border: '1px solid #EEEEEE' }}>
-                      <span style={{ fontWeight: 600, fontSize: 14 }}>{s.icon} {s.name}</span>
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        <button onClick={() => openEditOption('shapes', s)} style={S.editBtn}><Edit3 size={13} /> Edit</button>
-                        <button onClick={() => handleDeleteShape(s.id, s.name)} style={S.deleteBtn}><Trash2 size={13} /></button>
+                  {shapes.length === 0 ? (
+                    <div style={{ fontSize: 13, color: '#94A3B8', fontStyle: 'italic', padding: '8px 0' }}>No nail shapes added yet. Add your first shape below!</div>
+                  ) : (
+                    shapes.map(s => (
+                      <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: '#FAFAFA', borderRadius: 8, border: '1px solid #EEEEEE' }}>
+                        <span style={{ fontWeight: 600, fontSize: 14 }}>{s.icon} {s.name}</span>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button onClick={() => openEditOption('shapes', s)} style={S.editBtn}><Edit3 size={13} /> Edit</button>
+                          <button onClick={() => handleDeleteShape(s.id, s.name)} style={S.deleteBtn}><Trash2 size={13} /></button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
                 <div className="admin-inline-row" style={{ display: 'flex', gap: 8 }}>
                   <input placeholder="Icon (e.g. 💅)" value={newShapeIcon} onChange={e => setNewShapeIcon(e.target.value)} style={{ width: 70, ...S.formInput }} />
@@ -1416,18 +1422,22 @@ export default function AdminDashboard() {
               <div style={{ ...S.card, padding: 20 }}>
                 <h3 style={S.cardTitle}>Extension Lengths & Extra Pricing</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12, marginBottom: 16 }}>
-                  {lengths.map(l => (
-                    <div key={l.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: '#FAFAFA', borderRadius: 8, border: '1px solid #EEEEEE' }}>
-                      <div>
-                        <strong style={{ fontSize: 14 }}>{l.name}</strong>
-                        <span style={{ fontSize: 12, color: '#666', marginLeft: 8 }}>{l.extra > 0 ? `(+₦${Number(l.extra).toLocaleString()})` : 'Included'}</span>
+                  {lengths.length === 0 ? (
+                    <div style={{ fontSize: 13, color: '#94A3B8', fontStyle: 'italic', padding: '8px 0' }}>No extension lengths added yet. Add your first length below!</div>
+                  ) : (
+                    lengths.map(l => (
+                      <div key={l.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: '#FAFAFA', borderRadius: 8, border: '1px solid #EEEEEE' }}>
+                        <div>
+                          <strong style={{ fontSize: 14 }}>{l.name}</strong>
+                          <span style={{ fontSize: 12, color: '#666', marginLeft: 8 }}>{l.extra > 0 ? `(+₦${Number(l.extra).toLocaleString()})` : 'Included'}</span>
+                        </div>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button onClick={() => openEditOption('lengths', l)} style={S.editBtn}><Edit3 size={13} /> Edit</button>
+                          <button onClick={() => handleDeleteLength(l.id, l.name)} style={S.deleteBtn}><Trash2 size={13} /></button>
+                        </div>
                       </div>
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        <button onClick={() => openEditOption('lengths', l)} style={S.editBtn}><Edit3 size={13} /> Edit</button>
-                        <button onClick={() => handleDeleteLength(l.id, l.name)} style={S.deleteBtn}><Trash2 size={13} /></button>
-                      </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
                 <div className="admin-inline-row" style={{ display: 'flex', gap: 8 }}>
                   <input placeholder="Length (e.g. XXL)" value={newLengthName} onChange={e => setNewLengthName(e.target.value)} style={{ flex: 1, ...S.formInput }} />
@@ -1441,19 +1451,23 @@ export default function AdminDashboard() {
             <div style={{ ...S.card, padding: 20, marginBottom: 24 }}>
               <h3 style={S.cardTitle}>Nail Art Levels & Tiers</h3>
               <div className="admin-addons-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12, marginTop: 14, marginBottom: 16 }}>
-                {artTiers.map(art => (
-                  <div key={art.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '12px 16px', background: '#FAFAFA', borderRadius: 10, border: '1px solid #EAEAEA' }}>
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: 14 }}>{art.name}</div>
-                      <div style={{ fontSize: 13, color: '#EC4899', fontWeight: 700, marginTop: 2 }}>+₦{(art.price || 0).toLocaleString()}</div>
-                      {art.desc && <div style={{ fontSize: 12, color: '#666', marginTop: 4, lineHeight: 1.4 }}>{art.desc}</div>}
+                {artTiers.length === 0 ? (
+                  <div style={{ fontSize: 13, color: '#94A3B8', fontStyle: 'italic', padding: '8px 0', gridColumn: '1 / -1' }}>No nail art levels added yet. Add your first level below!</div>
+                ) : (
+                  artTiers.map(art => (
+                    <div key={art.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '12px 16px', background: '#FAFAFA', borderRadius: 10, border: '1px solid #EAEAEA' }}>
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: 14 }}>{art.name}</div>
+                        <div style={{ fontSize: 13, color: '#EC4899', fontWeight: 700, marginTop: 2 }}>+₦{(art.price || 0).toLocaleString()}</div>
+                        {art.desc && <div style={{ fontSize: 12, color: '#666', marginTop: 4, lineHeight: 1.4 }}>{art.desc}</div>}
+                      </div>
+                      <div style={{ display: 'flex', gap: 6, flexShrink: 0, marginLeft: 10 }}>
+                        <button onClick={() => openEditOption('artTiers', art)} style={S.editBtn}><Edit3 size={13} /> Edit</button>
+                        <button onClick={() => handleDeleteArtTier(art.id, art.name)} style={S.deleteBtn}><Trash2 size={13} /></button>
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', gap: 6, flexShrink: 0, marginLeft: 10 }}>
-                      <button onClick={() => openEditOption('artTiers', art)} style={S.editBtn}><Edit3 size={13} /> Edit</button>
-                      <button onClick={() => handleDeleteArtTier(art.id, art.name)} style={S.deleteBtn}><Trash2 size={13} /></button>
-                    </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
 
               <div className="admin-inline-row" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', maxWidth: 640 }}>
@@ -1468,18 +1482,22 @@ export default function AdminDashboard() {
             <div style={{ ...S.card, padding: 20 }}>
               <h3 style={S.cardTitle}>Service Add-ons & Extra Services</h3>
               <div className="admin-addons-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12, marginTop: 14, marginBottom: 16 }}>
-                {addons.map(a => (
-                  <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: '#FAFAFA', borderRadius: 10, border: '1px solid #EAEAEA' }}>
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: 14 }}>{a.name}</div>
-                      <div style={{ fontSize: 13, color: '#D4AF37', fontWeight: 700, marginTop: 2 }}>+₦{(a.price || 0).toLocaleString()}</div>
+                {addons.length === 0 ? (
+                  <div style={{ fontSize: 13, color: '#94A3B8', fontStyle: 'italic', padding: '8px 0', gridColumn: '1 / -1' }}>No add-on services added yet. Add your first add-on below!</div>
+                ) : (
+                  addons.map(a => (
+                    <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: '#FAFAFA', borderRadius: 10, border: '1px solid #EAEAEA' }}>
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: 14 }}>{a.name}</div>
+                        <div style={{ fontSize: 13, color: '#D4AF37', fontWeight: 700, marginTop: 2 }}>+₦{(a.price || 0).toLocaleString()}</div>
+                      </div>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button onClick={() => openEditOption('addons', a)} style={S.editBtn}><Edit3 size={13} /> Edit</button>
+                        <button onClick={() => handleDeleteAddon(a.id, a.name)} style={S.deleteBtn}><Trash2 size={13} /></button>
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <button onClick={() => openEditOption('addons', a)} style={S.editBtn}><Edit3 size={13} /> Edit</button>
-                      <button onClick={() => handleDeleteAddon(a.id, a.name)} style={S.deleteBtn}><Trash2 size={13} /></button>
-                    </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
 
               <div className="admin-inline-row" style={{ display: 'flex', gap: 10, maxWidth: 480 }}>

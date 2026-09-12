@@ -484,52 +484,58 @@ Instagram: @auricc_nails
               </div>
 
               {/* Shape Selection */}
-              <div className="widget-section">
-                <label className="section-label">Select Nail Shape</label>
-                <div className="mini-chips-grid">
-                  {shapesList.map((s) => (
-                    <button
-                      key={s.id}
-                      onClick={() => setSelectedShape(s)}
-                      className={`mini-chip ${selectedShape?.id === s.id ? 'active' : ''}`}
-                    >
-                      {s.icon} {s.name}
-                    </button>
-                  ))}
+              {shapesList && shapesList.length > 0 && (
+                <div className="widget-section">
+                  <label className="section-label">Select Nail Shape</label>
+                  <div className="mini-chips-grid">
+                    {shapesList.map((s) => (
+                      <button
+                        key={s.id}
+                        onClick={() => setSelectedShape(s)}
+                        className={`mini-chip ${selectedShape?.id === s.id ? 'active' : ''}`}
+                      >
+                        {s.icon} {s.name}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Length Selection */}
-              <div className="widget-section">
-                <label className="section-label">Select Extension Length</label>
-                <div className="mini-chips-grid">
-                  {lengthsList.map((l) => (
-                    <button
-                      key={l.id}
-                      onClick={() => setSelectedLength(l)}
-                      className={`mini-chip ${selectedLength?.id === l.id ? 'active' : ''}`}
-                    >
-                      {l.name} {l.extra > 0 ? `(+₦${Number(l.extra).toLocaleString()})` : ''}
-                    </button>
-                  ))}
+              {lengthsList && lengthsList.length > 0 && (
+                <div className="widget-section">
+                  <label className="section-label">Select Extension Length</label>
+                  <div className="mini-chips-grid">
+                    {lengthsList.map((l) => (
+                      <button
+                        key={l.id}
+                        onClick={() => setSelectedLength(l)}
+                        className={`mini-chip ${selectedLength?.id === l.id ? 'active' : ''}`}
+                      >
+                        {l.name} {l.extra > 0 ? `(+₦${Number(l.extra).toLocaleString()})` : ''}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Nail Art Tiers */}
-              <div className="widget-section">
-                <label className="section-label">Select Nail Art Level</label>
-                <div className="mini-chips-grid">
-                  {artTiersList.map((tier) => (
-                    <button
-                      key={tier.id}
-                      onClick={() => setSelectedArtTier(tier)}
-                      className={`mini-chip ${selectedArtTier?.id === tier.id ? 'active' : ''}`}
-                    >
-                      {tier.name} {tier.price > 0 ? `(+₦${Number(tier.price).toLocaleString()})` : '(Included)'}
-                    </button>
-                  ))}
+              {artTiersList && artTiersList.length > 0 && (
+                <div className="widget-section">
+                  <label className="section-label">Select Nail Art Level</label>
+                  <div className="mini-chips-grid">
+                    {artTiersList.map((tier) => (
+                      <button
+                        key={tier.id}
+                        onClick={() => setSelectedArtTier(tier)}
+                        className={`mini-chip ${selectedArtTier?.id === tier.id ? 'active' : ''}`}
+                      >
+                        {tier.name} {tier.price > 0 ? `(+₦${Number(tier.price).toLocaleString()})` : '(Included)'}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Add-ons */}
               {addonsList && addonsList.length > 0 && (
@@ -639,7 +645,7 @@ Instagram: @auricc_nails
                 <p><strong>Client:</strong> {clientInfo.name}</p>
                 <p><strong>Date & Time:</strong> {selectedDate} @ {selectedTime}</p>
                 <p><strong>Service:</strong> {selectedService?.name}</p>
-                <p><strong>Shape & Length:</strong> {selectedShape.name}, {selectedLength.name}</p>
+                <p><strong>Shape & Length:</strong> {selectedShape?.name || 'Standard'}, {selectedLength?.name || 'Standard'}</p>
                 <p><strong>Studio Location:</strong> 104 Auric Studio Lane, Suite 4B</p>
               </div>
 

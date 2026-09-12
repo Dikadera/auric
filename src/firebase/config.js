@@ -15,7 +15,7 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app, 'auric');
+const db = getFirestore(app);
 const storage = getStorage(app);
 const auth = getAuth(app);
 
