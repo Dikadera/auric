@@ -107,10 +107,7 @@ export default function SimpleBookingWidget() {
     const unsubShapes = onSnapshot(collection(db, 'shapes'), (snap) => {
       if (!snap.empty) {
         const shapes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        if (shapes.length > 0) {
-          setShapesList(shapes);
-          setSelectedShape(prev => shapes.find(s => (s.id && s.id === prev?.id) || s.name === prev?.name) || shapes[0]);
-        }
+        setShapesList(shapes);
       }
     }, (err) => console.warn('Shapes listener err:', err));
 
@@ -118,10 +115,7 @@ export default function SimpleBookingWidget() {
     const unsubLengths = onSnapshot(collection(db, 'lengths'), (snap) => {
       if (!snap.empty) {
         const lengths = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        if (lengths.length > 0) {
-          setLengthsList(lengths);
-          setSelectedLength(prev => lengths.find(l => (l.id && l.id === prev?.id) || l.name === prev?.name) || lengths[1] || lengths[0]);
-        }
+        setLengthsList(lengths);
       }
     }, (err) => console.warn('Lengths listener err:', err));
 
@@ -129,10 +123,7 @@ export default function SimpleBookingWidget() {
     const unsubArt = onSnapshot(collection(db, 'artTiers'), (snap) => {
       if (!snap.empty) {
         const tiers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        if (tiers.length > 0) {
-          setArtTiersList(tiers);
-          setSelectedArtTier(prev => tiers.find(t => (t.id && t.id === prev?.id) || t.name === prev?.name) || tiers[0]);
-        }
+        setArtTiersList(tiers);
       }
     }, (err) => console.warn('Art Tiers listener err:', err));
 
@@ -486,12 +477,18 @@ Instagram: @auricc_nails
               {/* Shape Selection */}
               {shapesList && shapesList.length > 0 && (
                 <div className="widget-section">
-                  <label className="section-label">Select Nail Shape</label>
+                  <label className="section-label">Select Nail Shape (Optional)</label>
                   <div className="mini-chips-grid">
+                    <button
+                      onClick={() => setSelectedShape(null)}
+                      className={`mini-chip ${!selectedShape ? 'active' : ''}`}
+                    >
+                      🚫 None / Natural
+                    </button>
                     {shapesList.map((s) => (
                       <button
                         key={s.id}
-                        onClick={() => setSelectedShape(s)}
+                        onClick={() => setSelectedShape(selectedShape?.id === s.id ? null : s)}
                         className={`mini-chip ${selectedShape?.id === s.id ? 'active' : ''}`}
                       >
                         {s.icon} {s.name}
@@ -504,12 +501,18 @@ Instagram: @auricc_nails
               {/* Length Selection */}
               {lengthsList && lengthsList.length > 0 && (
                 <div className="widget-section">
-                  <label className="section-label">Select Extension Length</label>
+                  <label className="section-label">Select Extension Length (Optional)</label>
                   <div className="mini-chips-grid">
+                    <button
+                      onClick={() => setSelectedLength(null)}
+                      className={`mini-chip ${!selectedLength ? 'active' : ''}`}
+                    >
+                      🚫 None / Natural Length
+                    </button>
                     {lengthsList.map((l) => (
                       <button
                         key={l.id}
-                        onClick={() => setSelectedLength(l)}
+                        onClick={() => setSelectedLength(selectedLength?.id === l.id ? null : l)}
                         className={`mini-chip ${selectedLength?.id === l.id ? 'active' : ''}`}
                       >
                         {l.name} {l.extra > 0 ? `(+₦${Number(l.extra).toLocaleString()})` : ''}
@@ -522,12 +525,18 @@ Instagram: @auricc_nails
               {/* Nail Art Tiers */}
               {artTiersList && artTiersList.length > 0 && (
                 <div className="widget-section">
-                  <label className="section-label">Select Nail Art Level</label>
+                  <label className="section-label">Select Nail Art Level (Optional)</label>
                   <div className="mini-chips-grid">
+                    <button
+                      onClick={() => setSelectedArtTier(null)}
+                      className={`mini-chip ${!selectedArtTier ? 'active' : ''}`}
+                    >
+                      🚫 None / Plain (No Art)
+                    </button>
                     {artTiersList.map((tier) => (
                       <button
                         key={tier.id}
-                        onClick={() => setSelectedArtTier(tier)}
+                        onClick={() => setSelectedArtTier(selectedArtTier?.id === tier.id ? null : tier)}
                         className={`mini-chip ${selectedArtTier?.id === tier.id ? 'active' : ''}`}
                       >
                         {tier.name} {tier.price > 0 ? `(+₦${Number(tier.price).toLocaleString()})` : '(Included)'}

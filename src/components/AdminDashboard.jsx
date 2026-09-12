@@ -1411,9 +1411,9 @@ export default function AdminDashboard() {
                     ))
                   )}
                 </div>
-                <div className="admin-inline-row" style={{ display: 'flex', gap: 8 }}>
-                  <input placeholder="Icon (e.g. 💅)" value={newShapeIcon} onChange={e => setNewShapeIcon(e.target.value)} style={{ width: 70, ...S.formInput }} />
-                  <input placeholder="Shape Name (e.g. Stiletto)" value={newShapeName} onChange={e => setNewShapeName(e.target.value)} style={{ flex: 1, ...S.formInput }} />
+                <div className="admin-inline-row" style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <input placeholder="Icon (e.g. 💅)" value={newShapeIcon} onChange={e => setNewShapeIcon(e.target.value)} style={{ width: 80, minWidth: 70, ...S.formInput }} />
+                  <input placeholder="Shape Name (e.g. Stiletto)" value={newShapeName} onChange={e => setNewShapeName(e.target.value)} style={{ flex: 1, minWidth: 160, ...S.formInput }} />
                   <button onClick={handleAddShape} style={S.editBtn}>Add Shape</button>
                 </div>
               </div>
@@ -1439,9 +1439,9 @@ export default function AdminDashboard() {
                     ))
                   )}
                 </div>
-                <div className="admin-inline-row" style={{ display: 'flex', gap: 8 }}>
-                  <input placeholder="Length (e.g. XXL)" value={newLengthName} onChange={e => setNewLengthName(e.target.value)} style={{ flex: 1, ...S.formInput }} />
-                  <input placeholder="Extra ₦ (e.g. 8000)" type="number" value={newLengthExtra} onChange={e => setNewLengthExtra(e.target.value)} style={{ width: 110, ...S.formInput }} />
+                <div className="admin-inline-row" style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <input placeholder="Length (e.g. XXL)" value={newLengthName} onChange={e => setNewLengthName(e.target.value)} style={{ flex: 1, minWidth: 160, ...S.formInput }} />
+                  <input placeholder="Extra ₦ (e.g. 8000)" type="number" value={newLengthExtra} onChange={e => setNewLengthExtra(e.target.value)} style={{ width: 130, minWidth: 100, ...S.formInput }} />
                   <button onClick={handleAddLength} style={S.editBtn}>Add Length</button>
                 </div>
               </div>
@@ -1470,9 +1470,9 @@ export default function AdminDashboard() {
                 )}
               </div>
 
-              <div className="admin-inline-row" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', maxWidth: 640 }}>
+              <div className="admin-inline-row" style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', maxWidth: 640 }}>
                 <input placeholder="Art Tier Name (e.g. 3D Opulence)" value={newArtTierName} onChange={e => setNewArtTierName(e.target.value)} style={{ flex: 1, minWidth: 160, ...S.formInput }} />
-                <input placeholder="Price ₦" type="number" value={newArtTierPrice} onChange={e => setNewArtTierPrice(e.target.value)} style={{ width: 110, ...S.formInput }} />
+                <input placeholder="Price ₦" type="number" value={newArtTierPrice} onChange={e => setNewArtTierPrice(e.target.value)} style={{ width: 120, minWidth: 100, ...S.formInput }} />
                 <input placeholder="Short Description" value={newArtTierDesc} onChange={e => setNewArtTierDesc(e.target.value)} style={{ flex: 1, minWidth: 180, ...S.formInput }} />
                 <button onClick={handleAddArtTier} style={S.editBtn}>Add Art Level</button>
               </div>
@@ -1500,9 +1500,9 @@ export default function AdminDashboard() {
                 )}
               </div>
 
-              <div className="admin-inline-row" style={{ display: 'flex', gap: 10, maxWidth: 480 }}>
-                <input placeholder="Add-on Name (e.g. Chrome Finish)" value={newAddonName} onChange={e => setNewAddonName(e.target.value)} style={{ flex: 1, ...S.formInput }} />
-                <input placeholder="Price ₦" type="number" value={newAddonPrice} onChange={e => setNewAddonPrice(e.target.value)} style={{ width: 120, ...S.formInput }} />
+              <div className="admin-inline-row" style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', maxWidth: 580 }}>
+                <input placeholder="Add-on Name (e.g. Chrome Finish)" value={newAddonName} onChange={e => setNewAddonName(e.target.value)} style={{ flex: 1, minWidth: 180, ...S.formInput }} />
+                <input placeholder="Price ₦" type="number" value={newAddonPrice} onChange={e => setNewAddonPrice(e.target.value)} style={{ width: 120, minWidth: 100, ...S.formInput }} />
                 <button onClick={handleAddAddon} style={S.editBtn}>Add Add-on</button>
               </div>
             </div>
@@ -2121,7 +2121,7 @@ const S = {
   modalFooter: { display: 'flex', justifyContent: 'flex-end', gap: 10, padding: '16px 24px', borderTop: '1px solid #F0F0F5' },
   formGroup: { display: 'flex', flexDirection: 'column', gap: 6 },
   formLabel: { fontSize: '0.8rem', fontWeight: 700, color: '#555' },
-  formInput: { width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid #DDD', borderRadius: 8, fontSize: '0.88rem', fontFamily: "'Plus Jakarta Sans', sans-serif", outline: 'none' },
+  formInput: { width: '100%', boxSizing: 'border-box', padding: '10px 14px', border: '1px solid #CBD5E1', borderRadius: 10, fontSize: '0.88rem', fontFamily: "'Plus Jakarta Sans', sans-serif", outline: 'none', background: '#FFFFFF', color: '#0F172A' },
   cancelBtn: { padding: '10px 20px', borderRadius: 8, border: '1px solid #DDD', background: '#FFF', color: '#555', fontWeight: 600, cursor: 'pointer', fontFamily: "'Plus Jakarta Sans', sans-serif" },
   saveBtn: { display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px', borderRadius: 8, border: 'none', background: '#D4AF37', color: '#000', fontWeight: 700, cursor: 'pointer', fontFamily: "'Plus Jakarta Sans', sans-serif" },
 
