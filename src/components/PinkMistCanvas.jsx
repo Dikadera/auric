@@ -93,6 +93,7 @@ export default function PinkMistCanvas() {
   return (
     <canvas
       ref={canvasRef}
+      data-scroll-ignore
       style={{
         position: 'fixed',
         top: 0,
@@ -100,8 +101,10 @@ export default function PinkMistCanvas() {
         width: '100vw',
         height: '100vh',
         pointerEvents: 'none',
-        zIndex: 20,
-        opacity: 0.95
+        touchAction: 'none',
+        userSelect: 'none',
+        zIndex: 0,
+        opacity: 0.85
       }}
     />
   );

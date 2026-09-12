@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import PinkMistCanvas from './PinkMistCanvas';
+import Preloader from './Preloader';
 
 // ─── Sidebar Nav Items ───────────────────────────────────────────────────────
 const NAV = [
@@ -93,13 +94,13 @@ export default function AdminDashboard() {
       const snap = await getDocs(collection(db, 'services'));
       if (!snap.empty) {
         const fetched = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(Boolean);
-        setServices(fetched.length > 0 ? fetched : localServices);
+        setServices(fetched);
       } else {
-        setServices(localServices);
+        setServices([]);
       }
     } catch (e) {
       console.error('Error fetching services:', e);
-      setServices(localServices);
+      setServices([]);
     } finally {
       setServicesLoading(false);
     }
@@ -113,17 +114,6 @@ export default function AdminDashboard() {
   const openEditService = (svc) => {
     setServiceForm({ ...svc });
     setServiceModal(svc);
-  };
-
-  const handleSeed = async () => {
-    try {
-      await seedDatabase();
-      await fetchServices();
-      showToast('Database seeded successfully!');
-    } catch (err) {
-      console.error('Error seeding DB:', err);
-      showToast('Error seeding database.', 'error');
-    }
   };
 
   const handleSaveService = async () => {
@@ -390,10 +380,10 @@ export default function AdminDashboard() {
   // ─────────────────────────────────────────────────────────────────────────────
   //  OPTIONS & SETTINGS STATE (Shapes, Lengths, Art Tiers, Addons, Studio Config)
   // ─────────────────────────────────────────────────────────────────────────────
-  const [shapes, setShapes] = useState(NAIL_SHAPES);
-  const [lengths, setLengths] = useState(NAIL_LENGTHS);
-  const [artTiers, setArtTiers] = useState(ART_TIERS);
-  const [addons, setAddons] = useState(ADD_ONS);
+  const [shapes, setShapes] = useState([]);
+  const [lengths, setLengths] = useState([]);
+  const [artTiers, setArtTiers] = useState([]);
+  const [addons, setAddons] = useState([]);
   const [studioConfig, setStudioConfig] = useState({
     timeSlots: ['09:00 AM', '10:30 AM', '12:00 PM', '01:30 PM', '03:00 PM', '04:30 PM'],
     depositAmount: 0,
@@ -407,7 +397,7 @@ export default function AdminDashboard() {
     studioDescription: 'Auric Nails (@auricc_nails) is your luxury escape for bespoke nail beauty and care. We specialize in clean, liquid gold chrome, gel-x, acrylic extensions, and long-wear BIAB overlays.'
   });
   const [newTimeSlotInput, setNewTimeSlotInput] = useState('');
-  const [optionsLoading, setOptionsLoading] = useState(false);
+  const [optionsLoading, setOptionsLoading] = useState(true);
 
   const syncOptionsToFirestore = async (newShapes, newLengths, newArtTiers, newAddons) => {
     try {
@@ -911,6 +901,10 @@ export default function AdminDashboard() {
     );
   }
 
+  if (servicesLoading && optionsLoading) {
+    return <Preloader message="Entering Auric Admin Portal…" />;
+  }
+
   return (
     <div className="admin-shell" style={S.shell}>
 
@@ -1103,12 +1097,9 @@ export default function AdminDashboard() {
             <div className="admin-section-header" style={S.sectionHeader}>
               <div>
                 <h1 style={S.pageTitle}>Services</h1>
-                <p style={S.pageSub}>{(Array.isArray(services) && services.length > 0 ? services : localServices).length} services listed</p>
+                <p style={S.pageSub}>{services.length} services listed</p>
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
-                <button onClick={handleSeed} style={S.iconBtn}>
-                  <RefreshCw size={15} /> Seed DB
-                </button>
                 <button onClick={openAddService} style={S.addBtn}>
                   <Plus size={16} /> Add Service
                 </button>
@@ -1117,9 +1108,9 @@ export default function AdminDashboard() {
 
             {servicesLoading ? (
               <div style={S.loading}>Loading services…</div>
-            ) : (
+            ) : services.length > 0 ? (
               <div className="admin-services-grid" style={S.servicesGrid}>
-                {(Array.isArray(services) && services.length > 0 ? services : localServices).map((svc, index) => {
+                {services.map((svc, index) => {
                   const svcId = svc.id || `svc-${index}`;
                   return (
                     <div key={svcId} style={S.svcCard}>
@@ -1152,6 +1143,12 @@ export default function AdminDashboard() {
                     </div>
                   );
                 })}
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: 40, background: '#FFF', borderRadius: 16, border: '1px solid #E2E8F0' }}>
+                <Scissors size={40} color="#CBD5E1" />
+                <h4 style={{ fontSize: 16, color: '#334155', margin: '12px 0 4px 0' }}>No Services Listed</h4>
+                <p style={{ fontSize: 13, color: '#64748B' }}>Click "Add Service" to create your first nail service.</p>
               </div>
             )}
           </div>
@@ -2031,7 +2028,7 @@ const S = {
   viewSiteBtn: { display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', borderRadius: 10, background: 'transparent', border: '1px solid #2A2A35', color: '#888', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer', fontFamily: "'Plus Jakarta Sans', sans-serif" },
 
   // Main
-  main: { flex: 1, overflowY: 'auto', position: 'relative', background: '#F7F8FA', minHeight: '100vh' },
+  main: { flex: 1, overflowY: 'visible', position: 'relative', background: '#F7F8FA', minHeight: '100vh' },
   section: { padding: '36px 40px', maxWidth: 1200, width: '100%' },
   sectionHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 },
   pageTitle: { fontSize: '1.7rem', fontWeight: 800, color: '#111', margin: 0, fontFamily: "'Playfair Display', serif" },

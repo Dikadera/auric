@@ -17,19 +17,18 @@ import {
 } from 'lucide-react';
 import { collection, getDocs, doc, getDoc, addDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase/config';
-import { SERVICES as localServices, NAIL_SHAPES, NAIL_LENGTHS, ART_TIERS, ADD_ONS } from '../data/servicesData';
-import PinkMistCanvas from './PinkMistCanvas';
+import Preloader from './Preloader';
 
 export default function SimpleBookingWidget() {
   const [step, setStep] = useState('services'); // 'services' | 'datetime' | 'details' | 'confirmation'
-  const [services, setServices] = useState(localServices);
+  const [services, setServices] = useState([]);
   const [loadingServices, setLoadingServices] = useState(true);
 
   // Customization Collections from Firestore
-  const [shapesList, setShapesList] = useState(NAIL_SHAPES);
-  const [lengthsList, setLengthsList] = useState(NAIL_LENGTHS);
-  const [artTiersList, setArtTiersList] = useState(ART_TIERS);
-  const [addonsList, setAddonsList] = useState(ADD_ONS);
+  const [shapesList, setShapesList] = useState([]);
+  const [lengthsList, setLengthsList] = useState([]);
+  const [artTiersList, setArtTiersList] = useState([]);
+  const [addonsList, setAddonsList] = useState([]);
   const [timeSlotsList, setTimeSlotsList] = useState(['09:00 AM', '10:30 AM', '12:00 PM', '01:30 PM', '03:00 PM', '04:30 PM']);
   const [depositAmount, setDepositAmount] = useState(10000);
   const [studioConfig, setStudioConfig] = useState({
@@ -44,9 +43,9 @@ export default function SimpleBookingWidget() {
 
   // Selected Options
   const [selectedService, setSelectedService] = useState(null);
-  const [selectedShape, setSelectedShape] = useState(NAIL_SHAPES[0]);
-  const [selectedLength, setSelectedLength] = useState(NAIL_LENGTHS[1]);
-  const [selectedArtTier, setSelectedArtTier] = useState(ART_TIERS[0]);
+  const [selectedShape, setSelectedShape] = useState(null);
+  const [selectedLength, setSelectedLength] = useState(null);
+  const [selectedArtTier, setSelectedArtTier] = useState(null);
   const [selectedAddons, setSelectedAddons] = useState([]);
   const [previewPhotos, setPreviewPhotos] = useState(null);
   const [activePhotoIdx, setActivePhotoIdx] = useState(0);
@@ -296,17 +295,15 @@ Instagram: @auricc_nails
     document.body.removeChild(element);
   };
 
-  const totalPrice = (selectedService?.price || 0) + selectedLength.extra + selectedArtTier.price + selectedAddons.reduce((s, a) => s + a.price, 0);
+  const totalPrice = (selectedService?.price || 0) + (selectedLength?.extra || 0) + (selectedArtTier?.price || 0) + selectedAddons.reduce((s, a) => s + (a.price || 0), 0);
+
+  if (loadingServices) {
+    return <Preloader />;
+  }
 
   return (
     <div className="widget-wrapper">
-      {/* Dynamic Falling Pink Mist & Floating Particles */}
-      <PinkMistCanvas />
 
-      {/* Dynamic Ambient Glass Orbs */}
-      <div className="bg-orb orb-pink-1"></div>
-      <div className="bg-orb orb-pink-2"></div>
-      <div className="bg-orb orb-pink-3"></div>
 
       {/* Top Navbar */}
       <header className="app-navbar">
@@ -330,16 +327,16 @@ Instagram: @auricc_nails
             <span className="nav-item-text">Services</span>
           </button>
           <a
-            href="https://instagram.com/auricc_nails"
+            href={`https://instagram.com/${(studioConfig.studioInstagram || '@auricc_nails').replace('@', '').trim()}`}
             target="_blank"
             rel="noreferrer"
             className="nav-item-link"
           >
             <Instagram size={15} />
-            <span className="nav-item-text">@auricc_nails</span>
+            <span className="nav-item-text">{studioConfig.studioInstagram || '@auricc_nails'}</span>
           </a>
           <a
-            href="https://wa.me/2348001234567"
+            href={`https://wa.me/${(studioConfig.studioPhone || '2348001234567').replace(/[^0-9]/g, '')}`}
             target="_blank"
             rel="noreferrer"
             className="nav-item-link"
@@ -373,44 +370,57 @@ Instagram: @auricc_nails
 
           {/* STEP 1: SERVICES LIST */}
           {step === 'services' && (
-            <div className="services-list">
-              {services.map((srv) => (
-                <div key={srv.id} className="service-row-item">
-                  <div
-                    className="srv-img-box"
-                    onClick={() => { setPreviewPhotos(srv); setActivePhotoIdx(0); }}
-                    title="Click to view all photos for this set"
-                    style={{ cursor: 'pointer', position: 'relative' }}
-                  >
-                    <img
-                      src={srv.imageUrl || (srv.id.includes('acrylic') ? '/images/hero.png' : srv.id.includes('gelx') ? '/images/chrome.png' : '/images/charms.png')}
-                      alt={srv.name}
-                    />
-                    {((srv.images?.length || 1) > 1) && (
-                      <span style={{ position: 'absolute', bottom: 4, right: 4, background: 'rgba(0,0,0,0.7)', color: '#FFF', fontSize: 10, padding: '2px 6px', borderRadius: 10, fontWeight: 700 }}>
-                        📷 {srv.images.length}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="srv-info">
-                    <h3 className="srv-title">{srv.name}</h3>
-                    <p className="srv-desc">{srv.description}</p>
-                    <div className="srv-meta">
-                      <span className="meta-price">₦{(srv.price || 0).toLocaleString()}</span>
-                      <span className="meta-dot">•</span>
-                      <span className="meta-time">{srv.duration}</span>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => handleSelectService(srv)}
-                    className="btn-book-pill"
-                  >
-                    Book
-                  </button>
+            <div>
+              {loadingServices ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 20px', gap: 14 }}>
+                  <div style={{ width: 36, height: 36, border: '3px solid rgba(212,175,55,0.2)', borderTop: '3px solid #D4AF37', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                  <span style={{ color: '#475569', fontSize: '0.88rem', fontWeight: 600 }}>Loading Auric Studio Services…</span>
                 </div>
-              ))}
+              ) : services.length > 0 ? (
+                <div className="services-list">
+                  {services.map((srv) => (
+                    <div key={srv.id} className="service-row-item">
+                      <div
+                        className="srv-img-box"
+                        onClick={() => { setPreviewPhotos(srv); setActivePhotoIdx(0); }}
+                        title="Click to view all photos for this set"
+                        style={{ cursor: 'pointer', position: 'relative' }}
+                      >
+                        <img
+                          src={srv.imageUrl || (srv.id.includes('acrylic') ? '/images/hero.png' : srv.id.includes('gelx') ? '/images/chrome.png' : '/images/charms.png')}
+                          alt={srv.name}
+                        />
+                        {((srv.images?.length || 1) > 1) && (
+                          <span style={{ position: 'absolute', bottom: 4, right: 4, background: 'rgba(0,0,0,0.7)', color: '#FFF', fontSize: 10, padding: '2px 6px', borderRadius: 10, fontWeight: 700 }}>
+                            📷 {srv.images.length}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="srv-info">
+                        <h3 className="srv-title">{srv.name}</h3>
+                        <p className="srv-desc">{srv.description}</p>
+                        <div className="srv-meta">
+                          <span className="meta-price">₦{(srv.price || 0).toLocaleString()}</span>
+                          <span className="meta-dot">•</span>
+                          <span className="meta-time">{srv.duration}</span>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => handleSelectService(srv)}
+                        className="btn-book-pill"
+                      >
+                        Book
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '50px 20px', color: '#64748B' }}>
+                  <p>No services currently listed. Check back soon!</p>
+                </div>
+              )}
             </div>
           )}
 
@@ -477,7 +487,7 @@ Instagram: @auricc_nails
               <div className="widget-section">
                 <label className="section-label">Select Nail Shape</label>
                 <div className="mini-chips-grid">
-                  {(shapesList && shapesList.length > 0 ? shapesList : NAIL_SHAPES).map((s) => (
+                  {shapesList.map((s) => (
                     <button
                       key={s.id}
                       onClick={() => setSelectedShape(s)}
@@ -493,7 +503,7 @@ Instagram: @auricc_nails
               <div className="widget-section">
                 <label className="section-label">Select Extension Length</label>
                 <div className="mini-chips-grid">
-                  {(lengthsList && lengthsList.length > 0 ? lengthsList : NAIL_LENGTHS).map((l) => (
+                  {lengthsList.map((l) => (
                     <button
                       key={l.id}
                       onClick={() => setSelectedLength(l)}
@@ -509,7 +519,7 @@ Instagram: @auricc_nails
               <div className="widget-section">
                 <label className="section-label">Select Nail Art Level</label>
                 <div className="mini-chips-grid">
-                  {(artTiersList && artTiersList.length > 0 ? artTiersList : ART_TIERS).map((tier) => (
+                  {artTiersList.map((tier) => (
                     <button
                       key={tier.id}
                       onClick={() => setSelectedArtTier(tier)}
@@ -672,10 +682,13 @@ Instagram: @auricc_nails
 
             {/* Contact Items List matching Screenshot */}
             <div className="contact-list">
-              <div className="contact-item">
+              <a
+                href={`tel:${(studioConfig.studioPhone || '2348001234567').replace(/\s+/g, '')}`}
+                className="contact-item link-item"
+              >
                 <Phone size={16} className="item-icon" />
                 <span>{studioConfig.studioPhone || '+234 800 123 4567'}</span>
-              </div>
+              </a>
 
               <a
                 href={`https://wa.me/${(studioConfig.studioPhone || '2348001234567').replace(/[^0-9]/g, '')}`}
@@ -688,7 +701,7 @@ Instagram: @auricc_nails
               </a>
 
               <a
-                href={`https://instagram.com/${(studioConfig.studioInstagram || '@auricc_nails').replace('@', '')}`}
+                href={`https://instagram.com/${(studioConfig.studioInstagram || '@auricc_nails').replace('@', '').trim()}`}
                 target="_blank"
                 rel="noreferrer"
                 className="contact-item link-item"
@@ -702,10 +715,13 @@ Instagram: @auricc_nails
                 <span>{studioConfig.studioAddress || 'Lekki Phase 1, Lagos, Nigeria'}</span>
               </div>
 
-              <div className="contact-item">
+              <a
+                href={`mailto:${studioConfig.studioEmail || 'hello@auricnails.com'}`}
+                className="contact-item link-item"
+              >
                 <Mail size={16} className="item-icon" />
                 <span>{studioConfig.studioEmail || 'hello@auricnails.com'}</span>
-              </div>
+              </a>
 
               <div className="contact-item hours-item">
                 <Clock size={16} className="item-icon" />
@@ -796,18 +812,16 @@ Instagram: @auricc_nails
           font-family: 'Plus Jakarta Sans', sans-serif;
           position: relative;
           overflow-x: hidden;
-          overflow-y: auto;
           box-sizing: border-box;
-          -webkit-overflow-scrolling: touch;
-          touch-action: pan-y;
         }
 
-        /* Floating Glass Orbs */
+        /* Floating Glass Orbs — subtle decorative only, no pointer events */
         .bg-orb {
-          position: absolute;
+          position: fixed;
           border-radius: 50%;
           pointer-events: none !important;
-          z-index: 1;
+          touch-action: none !important;
+          z-index: 0;
         }
         .orb-pink-1 {
           top: -100px;
@@ -939,7 +953,7 @@ Instagram: @auricc_nails
           box-shadow: 0 30px 80px rgba(236, 72, 153, 0.25), 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.8);
           display: grid;
           grid-template-columns: 1fr 380px;
-          overflow: hidden;
+          border-radius: 24px;
           color: #1A1A1A;
           position: relative;
           z-index: 10;
@@ -1129,6 +1143,9 @@ Instagram: @auricc_nails
         .dates-pill-row {
           display: flex;
           gap: 10px;
+          overflow-x: auto;
+          padding-bottom: 4px;
+          -webkit-overflow-scrolling: touch;
         }
         .date-chip {
           flex: 1;
@@ -1325,21 +1342,25 @@ Instagram: @auricc_nails
         }
 
         .studio-card-content {
-          padding: 40px 28px 30px 28px;
+          padding: 36px 26px 30px 26px;
           display: flex;
           flex-direction: column;
-          gap: 16px;
+          gap: 18px;
         }
         .studio-name {
           font-family: 'Playfair Display', serif;
-          font-size: 1.5rem;
+          font-size: 1.6rem;
           font-weight: 700;
-          color: #111;
+          color: #0F172A;
+          letter-spacing: 0.3px;
         }
         .studio-desc {
-          font-size: 0.84rem;
-          color: #666;
-          line-height: 1.6;
+          font-size: 0.92rem;
+          color: #334155;
+          line-height: 1.75;
+          letter-spacing: 0.012em;
+          font-weight: 450;
+          white-space: pre-line;
         }
         .gold-txt, .pink-txt {
           color: #DB2777;
@@ -1349,29 +1370,36 @@ Instagram: @auricc_nails
         .contact-list {
           display: flex;
           flex-direction: column;
-          gap: 12px;
+          gap: 14px;
           border-top: 1px solid #FCE7F3;
-          padding-top: 20px;
-          margin-top: 10px;
+          padding-top: 22px;
+          margin-top: 6px;
         }
         .contact-item {
           display: flex;
           align-items: center;
           gap: 12px;
-          font-size: 0.85rem;
-          color: #444;
+          font-size: 0.88rem;
+          color: #334155;
           text-decoration: none;
+          font-weight: 500;
+          transition: all 0.2s ease;
         }
         .link-item:hover {
-          color: #EC4899;
+          color: #DB2777;
+          transform: translateX(3px);
         }
         .item-icon {
-          color: #EC4899;
+          color: #DB2777;
           flex-shrink: 0;
         }
         .hours-item {
           color: #BE185D;
           font-weight: 600;
+          background: #FFF0F5;
+          padding: 8px 14px;
+          border-radius: 12px;
+          border: 1px solid #FCE7F3;
         }
 
         /* ── RESPONSIVE MOBILE VIEW ────────────────────────────────────────────────────────── */

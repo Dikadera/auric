@@ -5,34 +5,40 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* html is the ONE true scroll container */
 html {
   width: 100%;
-  min-height: 100%;
+  height: 100%;
   overflow-x: hidden;
-  overflow-y: auto;
+  overflow-y: scroll;   /* always show scroller so layout is stable */
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: auto;
+  scroll-behavior: smooth;
 }
 
 body {
   width: 100%;
   min-height: 100vh;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: visible;    /* body must NOT trap scroll */
   position: relative;
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   background-color: #0D0209;
   color: #111111;
   -webkit-font-smoothing: antialiased;
-  -webkit-overflow-scrolling: touch;
-  touch-action: manipulation;
 }
 
 #root {
   width: 100%;
   min-height: 100vh;
-  overflow-x: hidden;
+  overflow: visible;    /* root must NOT trap scroll */
   position: relative;
+}
+
+/* All fixed/absolute decoration elements must NEVER intercept touch */
+canvas,
+[data-scroll-ignore] {
+  pointer-events: none !important;
+  touch-action: none !important;
 }
 
 /* Scrollbar */
