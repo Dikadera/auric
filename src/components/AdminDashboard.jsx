@@ -13,7 +13,7 @@ import {
   CheckCircle, AlertTriangle, Eye, ExternalLink, Clock,
   TrendingUp, DollarSign, Star, ChevronDown, Search, Filter,
   MoreVertical, Check, XCircle, Phone, Mail, Menu,
-  Lock, Unlock, LogOut, ShieldCheck, EyeOff, Key
+  Lock, Unlock, LogOut, ShieldCheck, EyeOff, Key, Sparkles
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import PinkMistCanvas from './PinkMistCanvas';
@@ -1358,7 +1358,87 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* 2. TIME SLOTS */}
+            {/* 2. DISCOUNT & PROMOTION SETTINGS */}
+            <div style={{ ...S.card, padding: 20, marginBottom: 24, border: '1px solid #FBCFE8', background: 'linear-gradient(180deg, #FFFFFF 0%, #FDF2F8 100%)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 12 }}>
+                <div>
+                  <h3 style={{ ...S.cardTitle, color: '#BE185D', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Sparkles size={18} color="#EC4899" /> Studio Automatic Discount Settings
+                  </h3>
+                  <p style={{ fontSize: 13, color: '#64748B', margin: '4px 0 0' }}>
+                    Enable an automatic storewide discount for all online customer bookings (no promo code needed).
+                  </p>
+                </div>
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer', background: studioConfig.discountEnabled ? '#FCE7F3' : '#F1F5F9', padding: '6px 14px', borderRadius: 20, border: '1px solid #F472B6' }}>
+                  <input
+                    type="checkbox"
+                    checked={!!studioConfig.discountEnabled}
+                    onChange={(e) => setStudioConfig({ ...studioConfig, discountEnabled: e.target.checked })}
+                    style={{ accentColor: '#EC4899', width: 16, height: 16, cursor: 'pointer' }}
+                  />
+                  <span style={{ fontSize: 13, fontWeight: 700, color: studioConfig.discountEnabled ? '#BE185D' : '#64748B' }}>
+                    {studioConfig.discountEnabled ? '🟢 Discount Active' : '⚪ Discount Off'}
+                  </span>
+                </label>
+              </div>
+
+              <div className="admin-form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginTop: 16 }}>
+                <div>
+                  <label style={S.formLabel}>Discount Type</label>
+                  <select
+                    value={studioConfig.discountType || 'percentage'}
+                    onChange={(e) => setStudioConfig({ ...studioConfig, discountType: e.target.value })}
+                    style={{ ...S.formInput, cursor: 'pointer' }}
+                  >
+                    <option value="percentage">Percentage Off (%)</option>
+                    <option value="fixed">Fixed Amount Deduction (₦)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={S.formLabel}>
+                    {studioConfig.discountType === 'fixed' ? 'Discount Amount (₦)' : 'Discount Rate (%)'}
+                  </label>
+                  <input
+                    type="number"
+                    placeholder={studioConfig.discountType === 'fixed' ? 'e.g. 2000' : 'e.g. 10'}
+                    value={studioConfig.discountValue !== undefined ? studioConfig.discountValue : ''}
+                    onChange={(e) => setStudioConfig({ ...studioConfig, discountValue: Number(e.target.value) || 0 })}
+                    style={S.formInput}
+                  />
+                </div>
+              </div>
+
+              <div style={{ marginTop: 16 }}>
+                <label style={S.formLabel}>Discount Banner Description & Offer Terms</label>
+                <textarea
+                  rows={2}
+                  value={studioConfig.discountDescription || ''}
+                  onChange={(e) => setStudioConfig({ ...studioConfig, discountDescription: e.target.value })}
+                  placeholder="e.g. Enjoy special promotional savings on all online bookings today!"
+                  style={{ ...S.formInput, width: '100%', resize: 'vertical' }}
+                />
+              </div>
+
+              {/* Live Customer Banner Preview */}
+              {studioConfig.discountEnabled && (
+                <div style={{ marginTop: 16, padding: '12px 16px', background: '#FFF1F2', border: '1px dashed #F43F5E', borderRadius: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#BE185D', color: '#FFF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontWeight: 800 }}>
+                    %
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: '#BE185D' }}>
+                      Customer Banner Preview: Automatic Discount ({studioConfig.discountType === 'fixed' ? `₦${(studioConfig.discountValue || 0).toLocaleString()} OFF` : `${studioConfig.discountValue || 0}% OFF`})
+                    </div>
+                    <div style={{ fontSize: 12, color: '#9F1239', marginTop: 2 }}>
+                      {studioConfig.discountDescription || 'Enjoy special savings on your luxury nail appointment!'}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 3. TIME SLOTS */}
             <div style={{ ...S.card, padding: 20, marginBottom: 24 }}>
               <h3 style={S.cardTitle}>Available Daily Time Slots</h3>
               <p style={{ fontSize: 13, color: '#666', marginBottom: 14 }}>These daily slots will appear on Step 2 of the customer booking screen.</p>

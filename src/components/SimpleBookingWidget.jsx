@@ -13,7 +13,8 @@ import {
   User,
   FileText,
   Download,
-  AlertCircle
+  AlertCircle,
+  X
 } from 'lucide-react';
 import { collection, getDocs, doc, getDoc, addDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase/config';
@@ -49,6 +50,22 @@ export default function SimpleBookingWidget() {
   const [selectedAddons, setSelectedAddons] = useState([]);
   const [previewPhotos, setPreviewPhotos] = useState(null);
   const [activePhotoIdx, setActivePhotoIdx] = useState(0);
+
+
+  // Automatic Price & Discount Calculations
+  const subtotalPrice = (selectedService ? Number(selectedService.price) || 0 : 0) +
+    (selectedShape ? Number(selectedShape.price) || 0 : 0) +
+    (selectedLength ? Number(selectedLength.extra || selectedLength.price) || 0 : 0) +
+    (selectedArtTier ? Number(selectedArtTier.price) || 0 : 0) +
+    selectedAddons.reduce((sum, a) => sum + (Number(a.price) || 0), 0);
+
+  const discountDeduction = studioConfig.discountEnabled
+    ? (studioConfig.discountType === 'fixed'
+      ? Math.min(subtotalPrice, Number(studioConfig.discountValue) || 0)
+      : Math.round((subtotalPrice * (Number(studioConfig.discountValue) || 0)) / 100))
+    : 0;
+
+  const totalPrice = Math.max(0, subtotalPrice - discountDeduction);
 
   // Dynamic Upcoming Dates Generator
   const getDynamicUpcomingDates = () => {
@@ -258,10 +275,13 @@ export default function SimpleBookingWidget() {
         time: selectedTime,
         serviceName: selectedService?.name,
         serviceId: selectedService?.id,
-        shape: selectedShape?.name,
-        length: selectedLength?.name,
-        artTier: selectedArtTier?.name,
+        shape: selectedShape?.name || 'None / Natural',
+        length: selectedLength?.name || 'None / Natural',
+        artTier: selectedArtTier?.name || 'None / Plain',
         addons: selectedAddons.map(a => a.name),
+        subtotalPrice: subtotalPrice,
+        discountApplied: studioConfig.discountEnabled || false,
+        discountDeduction: discountDeduction,
         totalPrice: totalPrice,
         deposit: 0,
         paymentStatus: 'pay_at_studio',
@@ -289,17 +309,18 @@ Phone:          ${clientInfo.phone}
 Date:           ${selectedDate}
 Time:           ${selectedTime}
 
-Service:        ${selectedService?.name} (₦${selectedService?.price.toLocaleString()})
-Shape:          ${selectedShape?.name}
-Length:         ${selectedLength?.name} (+₦${selectedLength?.extra.toLocaleString()})
-Art Level:      ${selectedArtTier?.name} (+₦${selectedArtTier?.price.toLocaleString()})
+Service:        ${selectedService?.name} (₦${(selectedService?.price || 0).toLocaleString()})
+Shape:          ${selectedShape?.name || 'None / Natural'}
+Length:         ${selectedLength?.name || 'None / Natural'} (+₦${(selectedLength?.extra || 0).toLocaleString()})
+Art Level:      ${selectedArtTier?.name || 'None / Plain'} (+₦${(selectedArtTier?.price || 0).toLocaleString()})
 Add-ons:        ${selectedAddons.map(a => a.name).join(', ') || 'None'}
 
-Total Amount:   ₦${totalPrice.toLocaleString()}
+Subtotal:       ₦${subtotalPrice.toLocaleString()}
+${appliedPromo ? `Discount:       -₦${discountDeduction.toLocaleString()} (Promo: ${appliedPromo.code})\n` : ''}Total Amount:   ₦${totalPrice.toLocaleString()}
 Payment Terms:  Pay at Studio after appointment (No Deposit Required)
 
-Location: 104 Auric Studio Lane, Suite 4B
-Instagram: @auricc_nails
+Location: ${studioConfig.studioAddress || 'Lekki Phase 1, Lagos, Nigeria'}
+Instagram: ${studioConfig.studioInstagram || '@auricc_nails'}
 ==============================================
 `;
     const element = document.createElement("a");
@@ -311,7 +332,6 @@ Instagram: @auricc_nails
     document.body.removeChild(element);
   };
 
-  const totalPrice = (selectedService?.price || 0) + (selectedLength?.extra || 0) + (selectedArtTier?.price || 0) + selectedAddons.reduce((s, a) => s + (a.price || 0), 0);
 
   if (loadingServices) {
     return <Preloader />;
@@ -319,8 +339,6 @@ Instagram: @auricc_nails
 
   return (
     <div className="widget-wrapper">
-
-
       {/* Top Navbar */}
       <header className="app-navbar">
         <a href="/" className="nav-brand">
@@ -363,6 +381,34 @@ Instagram: @auricc_nails
         </nav>
       </header>
 
+      {/* ── TOP PROMO ANNOUNCEMENT BANNER ───────────────────────────────────── */}
+      {studioConfig.discountEnabled && (
+        <div style={{
+          background: 'linear-gradient(90deg, #9F1239 0%, #BE185D 40%, #EC4899 75%, #D4AF37 100%)',
+          color: '#FFFFFF',
+          padding: '11px 18px',
+          borderRadius: 14,
+          marginBottom: 18,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+          boxShadow: '0 4px 16px rgba(236,72,153,0.25)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
+            <div style={{ background: 'rgba(255,255,255,0.25)', borderRadius: '50%', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Sparkles size={16} color="#FFF" />
+            </div>
+            <span style={{ fontSize: '0.88rem', fontWeight: 700 }}>
+              🎉 SPECIAL PROMO ACTIVE: Save {studioConfig.discountType === 'fixed' ? `₦${(studioConfig.discountValue || 0).toLocaleString()} OFF` : `${studioConfig.discountValue || 0}% OFF`} your entire booking! {studioConfig.discountDescription && `— ${studioConfig.discountDescription}`}
+            </span>
+          </div>
+          <span style={{ fontSize: '0.72rem', background: 'rgba(0,0,0,0.3)', padding: '4px 10px', borderRadius: 20, fontWeight: 800, whiteSpace: 'nowrap', letterSpacing: '0.04em' }}>
+
+          </span>
+        </div>
+      )}
+
       <div className="booking-widget-card">
         {/* LEFT COLUMN: BOOKING FLOW */}
         <div className="widget-left-pane">
@@ -393,44 +439,92 @@ Instagram: @auricc_nails
                   <span style={{ color: '#475569', fontSize: '0.88rem', fontWeight: 600 }}>Loading Auric Studio Services…</span>
                 </div>
               ) : services.length > 0 ? (
-                <div className="services-list">
-                  {services.map((srv) => (
-                    <div key={srv.id} className="service-row-item">
-                      <div
-                        className="srv-img-box"
-                        onClick={() => { setPreviewPhotos(srv); setActivePhotoIdx(0); }}
-                        title="Click to view all photos for this set"
-                        style={{ cursor: 'pointer', position: 'relative' }}
-                      >
-                        <img
-                          src={srv.imageUrl || (srv.id.includes('acrylic') ? '/images/hero.png' : srv.id.includes('gelx') ? '/images/chrome.png' : '/images/charms.png')}
-                          alt={srv.name}
-                        />
-                        {((srv.images?.length || 1) > 1) && (
-                          <span style={{ position: 'absolute', bottom: 4, right: 4, background: 'rgba(0,0,0,0.7)', color: '#FFF', fontSize: 10, padding: '2px 6px', borderRadius: 10, fontWeight: 700 }}>
-                            📷 {srv.images.length}
-                          </span>
-                        )}
+                <div>
+                  {/* Step 1 Promo Discount Notice */}
+                  {studioConfig.discountEnabled && (
+                    <div style={{
+                      background: 'linear-gradient(135deg, #FFF1F2 0%, #FDF2F8 100%)',
+                      border: '1.5px solid #F472B6',
+                      borderRadius: 14,
+                      padding: '12px 16px',
+                      marginBottom: 16,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                      boxShadow: '0 2px 10px rgba(244,114,182,0.12)'
+                    }}>
+                      <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'linear-gradient(135deg, #EC4899, #BE185D)', color: '#FFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 15, flexShrink: 0 }}>
+                        %
                       </div>
-
-                      <div className="srv-info">
-                        <h3 className="srv-title">{srv.name}</h3>
-                        <p className="srv-desc">{srv.description}</p>
-                        <div className="srv-meta">
-                          <span className="meta-price">₦{(srv.price || 0).toLocaleString()}</span>
-                          <span className="meta-dot">•</span>
-                          <span className="meta-time">{srv.duration}</span>
-                        </div>
+                      <div style={{ flex: 1 }}>
+                        <strong style={{ fontSize: '0.88rem', color: '#BE185D', display: 'block', fontWeight: 800 }}>
+                          ✨ Studio Promotion ({studioConfig.discountType === 'fixed' ? `₦${(studioConfig.discountValue || 0).toLocaleString()} OFF` : `${studioConfig.discountValue || 0}% OFF`})
+                        </strong>
+                        <p style={{ fontSize: '0.78rem', color: '#9F1239', margin: '1px 0 0 0' }}>
+                          {studioConfig.discountDescription || 'Discount will automatically be deducted from your total checkout!'}
+                        </p>
                       </div>
-
-                      <button
-                        onClick={() => handleSelectService(srv)}
-                        className="btn-book-pill"
-                      >
-                        Book
-                      </button>
                     </div>
-                  ))}
+                  )}
+
+                  <div className="services-list">
+                    {services.map((srv) => {
+                      const serviceDiscount = studioConfig.discountEnabled
+                        ? (studioConfig.discountType === 'fixed'
+                          ? Math.min(srv.price || 0, studioConfig.discountValue || 0)
+                          : Math.round((srv.price || 0) * ((studioConfig.discountValue || 0) / 100)))
+                        : 0;
+                      const discountedPrice = Math.max(0, (srv.price || 0) - serviceDiscount);
+
+                      return (
+                        <div key={srv.id} className="service-row-item">
+                          <div
+                            className="srv-img-box"
+                            onClick={() => { setPreviewPhotos(srv); setActivePhotoIdx(0); }}
+                            title="Click to view all photos for this set"
+                            style={{ cursor: 'pointer', position: 'relative' }}
+                          >
+                            <img
+                              src={srv.imageUrl || (srv.id.includes('acrylic') ? '/images/hero.png' : srv.id.includes('gelx') ? '/images/chrome.png' : '/images/charms.png')}
+                              alt={srv.name}
+                            />
+                            {((srv.images?.length || 1) > 1) && (
+                              <span style={{ position: 'absolute', bottom: 4, right: 4, background: 'rgba(0,0,0,0.7)', color: '#FFF', fontSize: 10, padding: '2px 6px', borderRadius: 10, fontWeight: 700 }}>
+                                📷 {srv.images.length}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="srv-info">
+                            <h3 className="srv-title">{srv.name}</h3>
+                            <p className="srv-desc">{srv.description}</p>
+                            <div className="srv-meta">
+                              {studioConfig.discountEnabled && serviceDiscount > 0 ? (
+                                <span className="meta-price" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                  <s style={{ fontSize: '0.78rem', color: '#94A3B8', fontWeight: 500 }}>₦{(srv.price || 0).toLocaleString()}</s>
+                                  <span style={{ color: '#BE185D', fontWeight: 800 }}>₦{discountedPrice.toLocaleString()}</span>
+                                  <span style={{ fontSize: '0.68rem', background: '#FCE7F3', color: '#BE185D', padding: '2px 6px', borderRadius: 10, fontWeight: 800 }}>
+                                    {studioConfig.discountType === 'fixed' ? `-₦${serviceDiscount.toLocaleString()}` : `-${studioConfig.discountValue}%`}
+                                  </span>
+                                </span>
+                              ) : (
+                                <span className="meta-price">₦{(srv.price || 0).toLocaleString()}</span>
+                              )}
+                              <span className="meta-dot">•</span>
+                              <span className="meta-time">{srv.duration}</span>
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={() => handleSelectService(srv)}
+                            className="btn-book-pill"
+                          >
+                            Book
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               ) : (
                 <div style={{ textAlign: 'center', padding: '50px 20px', color: '#64748B' }}>
@@ -592,10 +686,38 @@ Instagram: @auricc_nails
                 </div>
               )}
 
+              {/* AUTOMATIC DISCOUNT BANNER */}
+              {studioConfig.discountEnabled && (
+                <div style={{ background: 'linear-gradient(135deg, #FFF1F2 0%, #FDF2F8 100%)', border: '1px solid #F472B6', borderRadius: 14, padding: '14px 16px', marginBottom: 20 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#EC4899', color: '#FFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 14, flexShrink: 0 }}>
+                      %
+                    </div>
+                    <div>
+                      <strong style={{ fontSize: '0.9rem', color: '#BE185D', display: 'block' }}>
+                        ✨ Special Discount Applied ({studioConfig.discountType === 'fixed' ? `₦${(studioConfig.discountValue || 0).toLocaleString()} OFF` : `${studioConfig.discountValue || 0}% OFF`})
+                      </strong>
+                      <p style={{ fontSize: '0.78rem', color: '#9F1239', margin: '2px 0 0 0' }}>
+                        {studioConfig.discountDescription || 'Discount will automatically be deducted from your total checkout!'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="widget-footer-actions">
                 <div className="price-preview">
                   <span>Pay at studio after service (No upfront deposit)</span>
-                  <div className="detail-value highlight">₦{totalPrice.toLocaleString()}</div>
+                  <div className="detail-value highlight">
+                    {discountDeduction > 0 ? (
+                      <span>
+                        <s style={{ fontSize: '0.8rem', color: '#94A3B8', marginRight: 6 }}>₦{subtotalPrice.toLocaleString()}</s>
+                        ₦{totalPrice.toLocaleString()}
+                      </span>
+                    ) : (
+                      <span>₦{totalPrice.toLocaleString()}</span>
+                    )}
+                  </div>
                 </div>
                 <button onClick={handleProceedToDetails} className="btn-book-pill action-btn">
                   Continue to Details
@@ -656,7 +778,11 @@ Instagram: @auricc_nails
 
               <div className="booking-breakdown-box">
                 <p><strong>Appointment:</strong> {selectedDate} at {selectedTime}</p>
-                <p><strong>Service Total:</strong> ₦{totalPrice.toLocaleString()}</p>
+                <p><strong>Subtotal:</strong> ₦{subtotalPrice.toLocaleString()}</p>
+                {discountDeduction > 0 && (
+                  <p><strong style={{ color: '#BE185D' }}>Automatic Discount:</strong> <span style={{ color: '#BE185D', fontWeight: 700 }}>-₦{discountDeduction.toLocaleString()}</span></p>
+                )}
+                <p><strong>Final Total:</strong> <strong style={{ color: '#EC4899', fontSize: '1.05rem' }}>₦{totalPrice.toLocaleString()}</strong></p>
                 <p><strong>Payment Terms:</strong> Pay at studio after appointment (No deposit required)</p>
               </div>
 
