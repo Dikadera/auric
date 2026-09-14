@@ -13,7 +13,7 @@ import {
   CheckCircle, AlertTriangle, Eye, ExternalLink, Clock,
   TrendingUp, DollarSign, Star, ChevronDown, Search, Filter,
   MoreVertical, Check, XCircle, Phone, Mail, Menu,
-  Lock, Unlock, LogOut, ShieldCheck, EyeOff, Key, Sparkles
+  Lock, Unlock, LogOut, ShieldCheck, EyeOff, Key, Sparkles, Music
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import PinkMistCanvas from './PinkMistCanvas';
@@ -107,21 +107,24 @@ export default function AdminDashboard() {
   };
 
   const openAddService = () => {
-    setServiceForm({ name: '', price: '', duration: '', description: '', category: 'Extensions', imageUrl: '' });
+    setServiceForm({ name: '', price: '', duration: '', description: '', category: 'Extensions', imageUrl: '', hidePrice: false });
     setServiceModal('add');
   };
 
   const openEditService = (svc) => {
-    setServiceForm({ ...svc });
+    setServiceForm({ hidePrice: false, ...svc });
     setServiceModal(svc);
   };
 
   const handleSaveService = async () => {
-    if (!serviceForm.name || !serviceForm.price) return showToast('Name and price are required.', 'error');
+    if (!serviceForm.name || !serviceForm.name.trim()) return showToast('Service name is required.', 'error');
     try {
+      const hasPrice = serviceForm.price !== '' && serviceForm.price !== null && serviceForm.price !== undefined;
+      const numericPrice = hasPrice ? (Number(serviceForm.price) || 0) : 0;
       const cleanData = {
-        name: serviceForm.name || '',
-        price: Number(serviceForm.price) || 0,
+        name: serviceForm.name.trim(),
+        price: numericPrice,
+        hidePrice: !hasPrice || !!serviceForm.hidePrice,
         duration: serviceForm.duration || '',
         category: serviceForm.category || 'Extensions',
         description: serviceForm.description || '',
@@ -132,7 +135,7 @@ export default function AdminDashboard() {
       if (serviceModal === 'add') {
         cleanData.createdAt = serverTimestamp();
         await addDoc(collection(db, 'services'), cleanData);
-        showToast('Service added successfully!');
+        showToast('Service uploaded successfully!');
       } else if (serviceModal && serviceModal.id) {
         await setDoc(doc(db, 'services', serviceModal.id), cleanData, { merge: true });
         showToast('Service updated successfully!');
@@ -388,6 +391,7 @@ export default function AdminDashboard() {
     timeSlots: ['09:00 AM', '10:30 AM', '12:00 PM', '01:30 PM', '03:00 PM', '04:30 PM'],
     depositAmount: 0,
     adminPasscode: 'auric2026',
+    musicEnabled: true,
     studioName: 'Auric Nails',
     studioPhone: '+234 800 123 4567',
     studioEmail: 'hello@auricnails.com',
@@ -454,14 +458,15 @@ export default function AdminDashboard() {
         payload.icon = optionForm.icon || '💅';
         payload.desc = optionForm.desc || '';
       } else if (collectionName === 'lengths') {
-        payload.extra = Number(optionForm.extra) || 0;
-        payload.badge = payload.extra > 0 ? `+₦${Number(payload.extra).toLocaleString()}` : 'Included';
+        const extraVal = optionForm.extra !== '' && optionForm.extra !== null ? (Number(optionForm.extra) || 0) : 0;
+        payload.extra = extraVal;
+        payload.badge = extraVal > 0 ? `+₦${Number(extraVal).toLocaleString()}` : 'Without Price';
       } else if (collectionName === 'artTiers') {
-        payload.price = Number(optionForm.price) || 0;
+        payload.price = optionForm.price !== '' && optionForm.price !== null ? (Number(optionForm.price) || 0) : 0;
         payload.desc = optionForm.desc || '';
         payload.tag = optionForm.tag || 'Tier Art';
       } else if (collectionName === 'addons') {
-        payload.price = Number(optionForm.price) || 0;
+        payload.price = optionForm.price !== '' && optionForm.price !== null ? (Number(optionForm.price) || 0) : 0;
         payload.desc = optionForm.desc || '';
       }
 
@@ -534,13 +539,13 @@ export default function AdminDashboard() {
 
   const handleAddLength = async () => {
     if (!newLengthName.trim()) return showToast('Length name required', 'error');
-    const extraVal = Number(newLengthExtra) || 0;
+    const extraVal = newLengthExtra !== '' && newLengthExtra !== null ? (Number(newLengthExtra) || 0) : 0;
     const newId = newLengthName.toLowerCase().replace(/[^a-z0-9]/g, '_');
     const newItem = {
       id: newId,
       name: newLengthName.trim(),
       extra: extraVal,
-      badge: extraVal > 0 ? `+₦${extraVal.toLocaleString()}` : 'Included'
+      badge: extraVal > 0 ? `+₦${extraVal.toLocaleString()}` : 'Without Price'
     };
     try { await setDoc(doc(db, 'lengths', newId), newItem, { merge: true }); } catch (e) { console.error('Add length err:', e); }
     const next = [...lengths.filter(l => l.id !== newId), newItem];
@@ -564,11 +569,12 @@ export default function AdminDashboard() {
 
   const handleAddArtTier = async () => {
     if (!newArtTierName.trim()) return showToast('Art level name required', 'error');
+    const priceVal = newArtTierPrice !== '' && newArtTierPrice !== null ? (Number(newArtTierPrice) || 0) : 0;
     const newId = newArtTierName.toLowerCase().replace(/[^a-z0-9]/g, '_');
     const newItem = {
       id: newId,
       name: newArtTierName.trim(),
-      price: Number(newArtTierPrice) || 0,
+      price: priceVal,
       desc: newArtTierDesc.trim() || 'Custom Art Level',
       tag: 'Tier Art'
     };
@@ -595,11 +601,12 @@ export default function AdminDashboard() {
 
   const handleAddAddon = async () => {
     if (!newAddonName.trim()) return showToast('Addon name required', 'error');
+    const priceVal = newAddonPrice !== '' && newAddonPrice !== null ? (Number(newAddonPrice) || 0) : 0;
     const newId = newAddonName.toLowerCase().replace(/[^a-z0-9]/g, '_');
     const newItem = {
       id: newId,
       name: newAddonName.trim(),
-      price: Number(newAddonPrice) || 0,
+      price: priceVal,
       desc: 'Custom Service Add-on'
     };
     try { await setDoc(doc(db, 'addons', newId), newItem, { merge: true }); } catch (e) { console.error('Add addon err:', e); }
@@ -1132,7 +1139,6 @@ export default function AdminDashboard() {
                       <div style={S.svcBody}>
                         <div style={S.svcCategory}>{svc.category || 'Nails'}</div>
                         <h4 style={S.svcName}>{svc.name || 'Untitled Service'}</h4>
-                        <div style={S.svcPrice}>₦{(svc.price || 0).toLocaleString()}</div>
                         <div style={S.svcDuration}>{svc.duration || '60 mins'}</div>
                       </div>
                       <div style={{ ...S.svcActions, gap: 6 }}>
@@ -1338,7 +1344,9 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* 2. ADMIN SECURITY & PASSCODE */}
+
+
+            {/* 3. ADMIN SECURITY & PASSCODE */}
             <div style={{ ...S.card, padding: 20, marginBottom: 24 }}>
               <h3 style={S.cardTitle}>Admin Passcode & Security Settings</h3>
               <p style={{ fontSize: 13, color: '#666', marginBottom: 14 }}>
@@ -1438,6 +1446,40 @@ export default function AdminDashboard() {
               )}
             </div>
 
+            {/* 4. BACKGROUND AMBIENT MUSIC SETTINGS */}
+            <div style={{ ...S.card, padding: 20, marginBottom: 24, border: '1px solid #E2E8F0', background: 'linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+                <div>
+                  <h3 style={{ ...S.cardTitle, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Music size={18} color="#EC4899" /> Background Ambient Music Settings
+                  </h3>
+                  <p style={{ fontSize: 13, color: '#64748B', margin: '4px 0 0' }}>
+                    Control whether soft background ambient music plays on the customer booking app. Includes 3 luxury ambient lounge tracks.
+                  </p>
+                </div>
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer', background: studioConfig.musicEnabled !== false ? '#E0E7FF' : '#F1F5F9', padding: '6px 14px', borderRadius: 20, border: '1px solid #818CF8' }}>
+                  <input
+                    type="checkbox"
+                    checked={studioConfig.musicEnabled !== false}
+                    onChange={(e) => setStudioConfig({ ...studioConfig, musicEnabled: e.target.checked })}
+                    style={{ accentColor: '#6366F1', width: 16, height: 16, cursor: 'pointer' }}
+                  />
+                  <span style={{ fontSize: 13, fontWeight: 700, color: studioConfig.musicEnabled !== false ? '#3730A3' : '#64748B' }}>
+                    {studioConfig.musicEnabled !== false ? '🟢 Music Active' : '⚪ Music Off'}
+                  </span>
+                </label>
+              </div>
+
+              <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px dashed #CBD5E1', fontSize: 13, color: '#475569' }}>
+                <span style={{ fontWeight: 600 }}>Included Ambient Audio Playlist (Customer Switchable):</span>
+                <ul style={{ margin: '6px 0 0 18px', padding: 0 }}>
+                  <li><strong>1. Crystal Wave Zen:</strong> Ultra soft zen meditation pad</li>
+                  <li><strong>2. Tranquility Spa:</strong> Soft physical therapy & healing pad</li>
+                  <li><strong>3. Peaceful Meditation:</strong> Gentle pure spa ambient soundscape</li>
+                </ul>
+              </div>
+            </div>
+
             {/* 3. TIME SLOTS */}
             <div style={{ ...S.card, padding: 20, marginBottom: 24 }}>
               <h3 style={S.cardTitle}>Available Daily Time Slots</h3>
@@ -1509,7 +1551,9 @@ export default function AdminDashboard() {
                       <div key={l.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: '#FAFAFA', borderRadius: 8, border: '1px solid #EEEEEE' }}>
                         <div>
                           <strong style={{ fontSize: 14 }}>{l.name}</strong>
-                          <span style={{ fontSize: 12, color: '#666', marginLeft: 8 }}>{l.extra > 0 ? `(+₦${Number(l.extra).toLocaleString()})` : 'Included'}</span>
+                          <span style={{ fontSize: 12, color: l.extra > 0 ? '#666' : '#D4AF37', marginLeft: 8, fontWeight: l.extra > 0 ? 500 : 700 }}>
+                            {l.extra > 0 ? `(+₦${Number(l.extra).toLocaleString()})` : 'Without Price'}
+                          </span>
                         </div>
                         <div style={{ display: 'flex', gap: 6 }}>
                           <button onClick={() => openEditOption('lengths', l)} style={S.editBtn}><Edit3 size={13} /> Edit</button>
@@ -1538,7 +1582,9 @@ export default function AdminDashboard() {
                     <div key={art.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '12px 16px', background: '#FAFAFA', borderRadius: 10, border: '1px solid #EAEAEA' }}>
                       <div>
                         <div style={{ fontWeight: 600, fontSize: 14 }}>{art.name}</div>
-                        <div style={{ fontSize: 13, color: '#EC4899', fontWeight: 700, marginTop: 2 }}>+₦{(art.price || 0).toLocaleString()}</div>
+                        <div style={{ fontSize: 13, color: art.price > 0 ? '#EC4899' : '#D4AF37', fontWeight: 700, marginTop: 2 }}>
+                          {art.price > 0 ? `+₦${(art.price || 0).toLocaleString()}` : 'Without Price'}
+                        </div>
                         {art.desc && <div style={{ fontSize: 12, color: '#666', marginTop: 4, lineHeight: 1.4 }}>{art.desc}</div>}
                       </div>
                       <div style={{ display: 'flex', gap: 6, flexShrink: 0, marginLeft: 10 }}>
@@ -1569,7 +1615,9 @@ export default function AdminDashboard() {
                     <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: '#FAFAFA', borderRadius: 10, border: '1px solid #EAEAEA' }}>
                       <div>
                         <div style={{ fontWeight: 600, fontSize: 14 }}>{a.name}</div>
-                        <div style={{ fontSize: 13, color: '#D4AF37', fontWeight: 700, marginTop: 2 }}>+₦{(a.price || 0).toLocaleString()}</div>
+                        <div style={{ fontSize: 13, color: a.price > 0 ? '#D4AF37' : '#94A3B8', fontWeight: 700, marginTop: 2 }}>
+                          {a.price > 0 ? `+₦${(a.price || 0).toLocaleString()}` : 'Without Price'}
+                        </div>
                       </div>
                       <div style={{ display: 'flex', gap: 6 }}>
                         <button onClick={() => openEditOption('addons', a)} style={S.editBtn}><Edit3 size={13} /> Edit</button>
@@ -1652,7 +1700,6 @@ export default function AdminDashboard() {
             <div style={S.modalBody}>
               {[
                 { label: 'Service Name *', key: 'name', type: 'text', placeholder: 'e.g. Bespoke Acrylic Full Set' },
-                { label: 'Price (₦) *', key: 'price', type: 'number', placeholder: 'e.g. 35000' },
                 { label: 'Duration', key: 'duration', type: 'text', placeholder: 'e.g. 90 mins' },
                 { label: 'Category', key: 'category', type: 'text', placeholder: 'e.g. Extensions' },
               ].map(({ label, key, type, placeholder }) => (
@@ -1661,7 +1708,7 @@ export default function AdminDashboard() {
                   <input
                     type={type}
                     placeholder={placeholder}
-                    value={serviceForm[key] || ''}
+                    value={serviceForm[key] !== undefined ? serviceForm[key] : ''}
                     onChange={e => setServiceForm(prev => ({ ...prev, [key]: e.target.value }))}
                     style={S.formInput}
                   />

@@ -52,9 +52,8 @@ export default function SimpleBookingWidget() {
   const [activePhotoIdx, setActivePhotoIdx] = useState(0);
 
 
-  // Automatic Price & Discount Calculations
-  const subtotalPrice = (selectedService ? Number(selectedService.price) || 0 : 0) +
-    (selectedShape ? Number(selectedShape.price) || 0 : 0) +
+  // Automatic Price & Discount Calculations (Strictly from sub-services)
+  const subtotalPrice = (selectedShape ? Number(selectedShape.price) || 0 : 0) +
     (selectedLength ? Number(selectedLength.extra || selectedLength.price) || 0 : 0) +
     (selectedArtTier ? Number(selectedArtTier.price) || 0 : 0) +
     selectedAddons.reduce((sum, a) => sum + (Number(a.price) || 0), 0);
@@ -309,15 +308,16 @@ Phone:          ${clientInfo.phone}
 Date:           ${selectedDate}
 Time:           ${selectedTime}
 
-Service:        ${selectedService?.name} (₦${(selectedService?.price || 0).toLocaleString()})
+Service:        ${selectedService?.name}
 Shape:          ${selectedShape?.name || 'None / Natural'}
-Length:         ${selectedLength?.name || 'None / Natural'} (+₦${(selectedLength?.extra || 0).toLocaleString()})
-Art Level:      ${selectedArtTier?.name || 'None / Plain'} (+₦${(selectedArtTier?.price || 0).toLocaleString()})
-Add-ons:        ${selectedAddons.map(a => a.name).join(', ') || 'None'}
+Length:         ${selectedLength?.name || 'None / Natural'}${selectedLength?.extra ? ` (+₦${Number(selectedLength.extra).toLocaleString()})` : ''}
+Art Level:      ${selectedArtTier?.name || 'None / Plain'}${selectedArtTier?.price ? ` (+₦${Number(selectedArtTier.price).toLocaleString()})` : ''}
+Add-ons:        ${selectedAddons.map(a => a.name + (a.price ? ` (+₦${Number(a.price).toLocaleString()})` : '')).join(', ') || 'None'}
 
 Subtotal:       ₦${subtotalPrice.toLocaleString()}
-${appliedPromo ? `Discount:       -₦${discountDeduction.toLocaleString()} (Promo: ${appliedPromo.code})\n` : ''}Total Amount:   ₦${totalPrice.toLocaleString()}
-Payment Terms:  Pay at Studio after appointment (No Deposit Required)
+${discountDeduction > 0 ? `Discount:       -₦${discountDeduction.toLocaleString()}\n` : ''}Total Amount:   ₦${totalPrice.toLocaleString()}
+Payment Terms:  Pay at Studio after appointment
+Payment Terms:  Pay at Studio after appointment
 
 Location: ${studioConfig.studioAddress || 'Lekki Phase 1, Lagos, Nigeria'}
 Instagram: ${studioConfig.studioInstagram || '@auricc_nails'}
@@ -499,18 +499,6 @@ Instagram: ${studioConfig.studioInstagram || '@auricc_nails'}
                             <h3 className="srv-title">{srv.name}</h3>
                             <p className="srv-desc">{srv.description}</p>
                             <div className="srv-meta">
-                              {studioConfig.discountEnabled && serviceDiscount > 0 ? (
-                                <span className="meta-price" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                                  <s style={{ fontSize: '0.78rem', color: '#94A3B8', fontWeight: 500 }}>₦{(srv.price || 0).toLocaleString()}</s>
-                                  <span style={{ color: '#BE185D', fontWeight: 800 }}>₦{discountedPrice.toLocaleString()}</span>
-                                  <span style={{ fontSize: '0.68rem', background: '#FCE7F3', color: '#BE185D', padding: '2px 6px', borderRadius: 10, fontWeight: 800 }}>
-                                    {studioConfig.discountType === 'fixed' ? `-₦${serviceDiscount.toLocaleString()}` : `-${studioConfig.discountValue}%`}
-                                  </span>
-                                </span>
-                              ) : (
-                                <span className="meta-price">₦{(srv.price || 0).toLocaleString()}</span>
-                              )}
-                              <span className="meta-dot">•</span>
                               <span className="meta-time">{srv.duration}</span>
                             </div>
                           </div>
@@ -539,7 +527,7 @@ Instagram: ${studioConfig.studioInstagram || '@auricc_nails'}
             <div className="datetime-pane">
               <div className="selected-srv-summary">
                 <span className="summary-tag">Selected Service:</span>
-                <strong>{selectedService.name} (₦{selectedService.price.toLocaleString()})</strong>
+                <strong>{selectedService.name}</strong>
               </div>
 
               {/* Date Selection */}
@@ -678,7 +666,7 @@ Instagram: ${studioConfig.studioInstagram || '@auricc_nails'}
                           onClick={() => toggleAddon(addon)}
                           className={`mini-chip ${isSelected ? 'active' : ''}`}
                         >
-                          {isSelected ? '✓ ' : '+ '}{addon.name} (+₦{Number(addon.price).toLocaleString()})
+                          {isSelected ? '✓ ' : '+ '}{addon.name}{addon.price > 0 ? ` (+₦${Number(addon.price).toLocaleString()})` : ''}
                         </button>
                       );
                     })}
@@ -707,7 +695,7 @@ Instagram: ${studioConfig.studioInstagram || '@auricc_nails'}
 
               <div className="widget-footer-actions">
                 <div className="price-preview">
-                  <span>Pay at studio after service (No upfront deposit)</span>
+                  <span>Pay at studio after service</span>
                   <div className="detail-value highlight">
                     {discountDeduction > 0 ? (
                       <span>
@@ -778,12 +766,13 @@ Instagram: ${studioConfig.studioInstagram || '@auricc_nails'}
 
               <div className="booking-breakdown-box">
                 <p><strong>Appointment:</strong> {selectedDate} at {selectedTime}</p>
+                <p><strong>Service:</strong> {selectedService.name}</p>
                 <p><strong>Subtotal:</strong> ₦{subtotalPrice.toLocaleString()}</p>
                 {discountDeduction > 0 && (
                   <p><strong style={{ color: '#BE185D' }}>Automatic Discount:</strong> <span style={{ color: '#BE185D', fontWeight: 700 }}>-₦{discountDeduction.toLocaleString()}</span></p>
                 )}
                 <p><strong>Final Total:</strong> <strong style={{ color: '#EC4899', fontSize: '1.05rem' }}>₦{totalPrice.toLocaleString()}</strong></p>
-                <p><strong>Payment Terms:</strong> Pay at studio after appointment (No deposit required)</p>
+                <p><strong>Payment Terms:</strong> Pay at studio after appointment</p>
               </div>
 
               <button type="submit" className="btn-book-pill action-btn full-btn">
