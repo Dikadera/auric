@@ -14,7 +14,11 @@ import {
   FileText,
   Download,
   AlertCircle,
-  X
+  X,
+  CreditCard,
+  Building,
+  Copy,
+  Check
 } from 'lucide-react';
 import { collection, getDocs, doc, getDoc, addDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase/config';
@@ -39,10 +43,14 @@ export default function SimpleBookingWidget() {
     studioInstagram: '@auricc_nails',
     studioAddress: 'Lekki Phase 1, Lagos, Nigeria',
     studioHours: 'Opens today at 10:00 AM',
-    studioDescription: 'Auric Nails (@auricc_nails) is your luxury escape for bespoke nail beauty and care. We specialize in clean, liquid gold chrome, gel-x, acrylic extensions, and long-wear BIAB overlays.'
+    studioDescription: 'Auric Nails (@auricc_nails) is your luxury escape for bespoke nail beauty and care. We specialize in clean, liquid gold chrome, gel-x, acrylic extensions, and long-wear BIAB overlays.',
+    bankName: 'GTBank',
+    accountNumber: '0123456789',
+    accountName: 'AURIC NAILS BEAUTY',
+    paymentInstructions: 'Please use your Booking Ref ID as payment reference or narration. Send payment screenshot on WhatsApp to confirm immediately.'
   });
 
-  // Selected Options
+  // Selected Options & Payment Choice
   const [selectedService, setSelectedService] = useState(null);
   const [selectedShape, setSelectedShape] = useState(null);
   const [selectedLength, setSelectedLength] = useState(null);
@@ -50,6 +58,16 @@ export default function SimpleBookingWidget() {
   const [selectedAddons, setSelectedAddons] = useState([]);
   const [previewPhotos, setPreviewPhotos] = useState(null);
   const [activePhotoIdx, setActivePhotoIdx] = useState(0);
+
+  const [paymentChoice, setPaymentChoice] = useState('pay_now'); // 'pay_now' | 'pay_later'
+  const [copiedAccount, setCopiedAccount] = useState(false);
+
+  const handleCopyAccount = () => {
+    const accNum = studioConfig.accountNumber || '0123456789';
+    navigator.clipboard.writeText(accNum);
+    setCopiedAccount(true);
+    setTimeout(() => setCopiedAccount(false), 2500);
+  };
 
 
   // Automatic Price & Discount Calculations (Strictly from sub-services)
@@ -262,6 +280,9 @@ export default function SimpleBookingWidget() {
     const newId = `AURIC-${Math.floor(100000 + Math.random() * 900000)}`;
     setBookingId(newId);
 
+    const bookingDateStr = new Date().toISOString().split('T')[0];
+    const bookingTimeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
     // Save booking to Firestore
     try {
       await addDoc(collection(db, 'bookings'), {
@@ -272,6 +293,8 @@ export default function SimpleBookingWidget() {
         notes: clientInfo.notes,
         date: selectedDate,
         time: selectedTime,
+        bookingDate: bookingDateStr,
+        bookingTime: bookingTimeStr,
         serviceName: selectedService?.name,
         serviceId: selectedService?.id,
         shape: selectedShape?.name || 'None / Natural',
@@ -283,7 +306,7 @@ export default function SimpleBookingWidget() {
         discountDeduction: discountDeduction,
         totalPrice: totalPrice,
         deposit: 0,
-        paymentStatus: 'pay_at_studio',
+        paymentStatus: 'pending',
         status: 'pending',
         createdAt: serverTimestamp(),
       });
@@ -295,18 +318,20 @@ export default function SimpleBookingWidget() {
   };
 
   const downloadReceipt = () => {
+    const todayStr = new Date().toISOString().split('T')[0];
     const content = `
 ==============================================
           AURIC NAILS (@auricc_nails)
          APPOINTMENT BOOKING SLIP
 ==============================================
-Ref ID:         ${bookingId}
-Client:         ${clientInfo.name}
-Email:          ${clientInfo.email}
-Phone:          ${clientInfo.phone}
+Ref ID:               ${bookingId}
+Client:               ${clientInfo.name}
+Email:                ${clientInfo.email}
+Phone:                ${clientInfo.phone}
+Booked On:            ${todayStr}
 
-Date:           ${selectedDate}
-Time:           ${selectedTime}
+Appointment Day:      ${selectedDate}
+Appointment Time:     ${selectedTime}
 
 Service:        ${selectedService?.name}
 Shape:          ${selectedShape?.name || 'None / Natural'}
@@ -316,8 +341,15 @@ Add-ons:        ${selectedAddons.map(a => a.name + (a.price ? ` (+₦${Number(a.
 
 Subtotal:       ₦${subtotalPrice.toLocaleString()}
 ${discountDeduction > 0 ? `Discount:       -₦${discountDeduction.toLocaleString()}\n` : ''}Total Amount:   ₦${totalPrice.toLocaleString()}
-Payment Terms:  Pay at Studio after appointment
-Payment Terms:  Pay at Studio after appointment
+Selected Option:${paymentChoice === 'pay_now' ? ' Pay Now via Direct Bank Transfer' : ' Pay Later at Studio (POS / Cash)'}
+
+----------------------------------------------
+STUDIO BANK ACCOUNT (For Direct Transfer):
+Bank:           ${studioConfig.bankName || 'GTBank'}
+Account Number: ${studioConfig.accountNumber || '0123456789'}
+Account Name:   ${studioConfig.accountName || 'AURIC NAILS BEAUTY'}
+Payment Ref:    ${bookingId}
+----------------------------------------------
 
 Location: ${studioConfig.studioAddress || 'Lekki Phase 1, Lagos, Nigeria'}
 Instagram: ${studioConfig.studioInstagram || '@auricc_nails'}
@@ -765,7 +797,7 @@ Instagram: ${studioConfig.studioInstagram || '@auricc_nails'}
               </div>
 
               <div className="booking-breakdown-box">
-                <p><strong>Appointment:</strong> {selectedDate} at {selectedTime}</p>
+                <p><strong>Appointment Day / Time:</strong> {selectedDate} at {selectedTime}</p>
                 <p><strong>Service:</strong> {selectedService.name}</p>
                 <p><strong>Subtotal:</strong> ₦{subtotalPrice.toLocaleString()}</p>
                 {discountDeduction > 0 && (
@@ -792,10 +824,193 @@ Instagram: ${studioConfig.studioInstagram || '@auricc_nails'}
 
               <div className="conf-summary-card">
                 <p><strong>Client:</strong> {clientInfo.name}</p>
-                <p><strong>Date & Time:</strong> {selectedDate} @ {selectedTime}</p>
+                <p><strong>Appointment Day / Time:</strong> {selectedDate} @ {selectedTime}</p>
+                <p><strong>Booked On:</strong> {new Date().toISOString().split('T')[0]}</p>
                 <p><strong>Service:</strong> {selectedService?.name}</p>
                 <p><strong>Shape & Length:</strong> {selectedShape?.name || 'Standard'}, {selectedLength?.name || 'Standard'}</p>
-                <p><strong>Studio Location:</strong> 104 Auric Studio Lane, Suite 4B</p>
+                <p><strong>Total Amount:</strong> <strong style={{ color: '#EC4899', fontSize: '1.05rem' }}>₦{totalPrice.toLocaleString()}</strong></p>
+                <p><strong>Studio Location:</strong> {studioConfig.studioAddress || 'Lekki Phase 1, Lagos, Nigeria'}</p>
+              </div>
+
+              {/* PAYMENT OPTION SELECTOR (PAY NOW VS PAY LATER) */}
+              <div style={{ marginTop: 22, marginBottom: 20, textAlign: 'left' }}>
+                <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1E293B', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <CreditCard size={18} color="#D4AF37" /> Payment Preference
+                </h4>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentChoice('pay_now')}
+                    style={{
+                      padding: '12px 14px',
+                      borderRadius: 14,
+                      border: paymentChoice === 'pay_now' ? '2px solid #D4AF37' : '1px solid #E2E8F0',
+                      background: paymentChoice === 'pay_now' ? 'linear-gradient(135deg, #FFFDF0 0%, #FFFDF8 100%)' : '#FFFFFF',
+                      boxShadow: paymentChoice === 'pay_now' ? '0 4px 14px rgba(212,175,55,0.2)' : 'none',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 800, color: paymentChoice === 'pay_now' ? '#92400E' : '#334155' }}>
+                        💳 Pay Now
+                      </span>
+                      {paymentChoice === 'pay_now' && (
+                        <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#D4AF37', display: 'inline-block' }} />
+                      )}
+                    </div>
+                    <span style={{ fontSize: '0.75rem', color: '#64748B', display: 'block', lineHeight: 1.3 }}>
+                      Direct Bank Transfer to Studio Account
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setPaymentChoice('pay_later')}
+                    style={{
+                      padding: '12px 14px',
+                      borderRadius: 14,
+                      border: paymentChoice === 'pay_later' ? '2px solid #EC4899' : '1px solid #E2E8F0',
+                      background: paymentChoice === 'pay_later' ? 'linear-gradient(135deg, #FDF2F8 0%, #FFF 100%)' : '#FFFFFF',
+                      boxShadow: paymentChoice === 'pay_later' ? '0 4px 14px rgba(236,72,153,0.2)' : 'none',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 800, color: paymentChoice === 'pay_later' ? '#BE185D' : '#334155' }}>
+                        🕒 Pay Later
+                      </span>
+                      {paymentChoice === 'pay_later' && (
+                        <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#EC4899', display: 'inline-block' }} />
+                      )}
+                    </div>
+                    <span style={{ fontSize: '0.75rem', color: '#64748B', display: 'block', lineHeight: 1.3 }}>
+                      Pay with POS / Cash when arriving at studio
+                    </span>
+                  </button>
+                </div>
+
+                {/* PAY NOW: BANK ACCOUNT DETAILS CARD */}
+                {paymentChoice === 'pay_now' && (
+                  <div style={{
+                    background: 'linear-gradient(135deg, #831843 0%, #BE185D 45%, #9D174D 80%, #500724 100%)',
+                    borderRadius: 18,
+                    padding: '20px',
+                    color: '#FFFFFF',
+                    boxShadow: '0 12px 30px rgba(190,24,93,0.35)',
+                    position: 'relative',
+                    overflow: 'hidden'
+                  }}>
+                    {/* Background Metallic Shine */}
+                    <div style={{
+                      position: 'absolute', top: -30, right: -30, width: 120, height: 120,
+                      background: 'radial-gradient(circle, rgba(212,175,55,0.3) 0%, rgba(0,0,0,0) 70%)',
+                      borderRadius: '50%', pointerEvents: 'none'
+                    }} />
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#FDE047', background: 'rgba(253,224,71,0.15)', padding: '3px 10px', borderRadius: 20 }}>
+                        Studio Bank Account
+                      </span>
+                      <Building size={20} color="#FDE047" />
+                    </div>
+
+                    <div style={{ marginBottom: 12 }}>
+                      <span style={{ fontSize: '0.75rem', color: '#CBD5E1', display: 'block' }}>Bank Name</span>
+                      <strong style={{ fontSize: '1.05rem', color: '#FFFFFF', fontWeight: 800 }}>
+                        {studioConfig.bankName || 'GTBank'}
+                      </strong>
+                    </div>
+
+                    <div style={{ marginBottom: 14, background: 'rgba(255,255,255,0.08)', padding: '12px 14px', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid rgba(255,255,255,0.12)' }}>
+                      <div>
+                        <span style={{ fontSize: '0.72rem', color: '#94A3B8', display: 'block' }}>Account Number</span>
+                        <strong style={{ fontSize: '1.35rem', letterSpacing: '2px', color: '#FFF', fontFamily: 'monospace' }}>
+                          {studioConfig.accountNumber || '0123456789'}
+                        </strong>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleCopyAccount}
+                        style={{
+                          background: copiedAccount ? '#22C55E' : '#D4AF37',
+                          color: copiedAccount ? '#FFF' : '#000',
+                          border: 'none',
+                          padding: '8px 14px',
+                          borderRadius: 10,
+                          fontWeight: 800,
+                          fontSize: '0.8rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          transition: 'all 0.2s ease',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+                        }}
+                      >
+                        {copiedAccount ? <Check size={14} /> : <Copy size={14} />}
+                        {copiedAccount ? 'Copied!' : 'Copy Account'}
+                      </button>
+                    </div>
+
+                    <div style={{ marginBottom: 12 }}>
+                      <span style={{ fontSize: '0.75rem', color: '#CBD5E1', display: 'block' }}>Account Name</span>
+                      <strong style={{ fontSize: '0.92rem', color: '#F3F4F6', fontWeight: 700 }}>
+                        {studioConfig.accountName || 'AURIC NAILS BEAUTY'}
+                      </strong>
+                    </div>
+
+                    <div style={{ fontSize: '0.78rem', color: '#E2E8F0', background: 'rgba(0,0,0,0.25)', padding: '9px 12px', borderRadius: 10, lineHeight: 1.4, marginTop: 10 }}>
+                      📌 {studioConfig.paymentInstructions || `Please use your Booking Ref (${bookingId}) as payment description/narration.`}
+                    </div>
+
+                    {/* Send Payment Proof WhatsApp Link */}
+                    <a
+                      href={`https://wa.me/${(studioConfig.studioPhone || '2347087490482').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hi Auric Nails, I just made a bank transfer payment for my booking!\n\nBooking Ref: ${bookingId}\nName: ${clientInfo.name}\nService: ${selectedService?.name || 'Nail Service'}\nAmount Paid: ₦${totalPrice.toLocaleString()}`)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 8,
+                        background: '#25D366',
+                        color: '#FFF',
+                        textDecoration: 'none',
+                        padding: '11px',
+                        borderRadius: 12,
+                        marginTop: 14,
+                        fontWeight: 700,
+                        fontSize: '0.85rem',
+                        boxShadow: '0 4px 12px rgba(37,211,102,0.3)'
+                      }}
+                    >
+                      <MessageCircle size={16} /> Send Payment Receipt on WhatsApp
+                    </a>
+                  </div>
+                )}
+
+                {/* PAY LATER NOTICE */}
+                {paymentChoice === 'pay_later' && (
+                  <div style={{
+                    background: '#FFF1F2',
+                    border: '1.5px solid #F472B6',
+                    borderRadius: 16,
+                    padding: '16px 18px',
+                    color: '#9F1239'
+                  }}>
+                    <strong style={{ fontSize: '0.9rem', color: '#BE185D', display: 'block', marginBottom: 4, fontWeight: 800 }}>
+                      ✨ Pay at Studio Reserved
+                    </strong>
+                    <p style={{ fontSize: '0.82rem', margin: 0, lineHeight: 1.5 }}>
+                      Your reservation for <strong>{selectedDate} at {selectedTime}</strong> is held! You can pay <strong>₦{totalPrice.toLocaleString()}</strong> via POS or cash when you arrive at Auric Nails.
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="conf-btns">

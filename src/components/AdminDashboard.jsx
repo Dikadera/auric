@@ -13,7 +13,8 @@ import {
   CheckCircle, AlertTriangle, Eye, ExternalLink, Clock,
   TrendingUp, DollarSign, Star, ChevronDown, Search, Filter,
   MoreVertical, Check, XCircle, Phone, Mail, Menu,
-  Lock, Unlock, LogOut, ShieldCheck, EyeOff, Key, Sparkles, Music
+  Lock, Unlock, LogOut, ShieldCheck, EyeOff, Key, Sparkles, Music,
+  Building, CreditCard, Copy
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import PinkMistCanvas from './PinkMistCanvas';
@@ -398,7 +399,11 @@ export default function AdminDashboard() {
     studioInstagram: '@auricc_nails',
     studioAddress: 'Lekki Phase 1, Lagos, Nigeria',
     studioHours: 'Opens today at 10:00 AM',
-    studioDescription: 'Auric Nails (@auricc_nails) is your luxury escape for bespoke nail beauty and care. We specialize in clean, liquid gold chrome, gel-x, acrylic extensions, and long-wear BIAB overlays.'
+    studioDescription: 'Auric Nails (@auricc_nails) is your luxury escape for bespoke nail beauty and care. We specialize in clean, liquid gold chrome, gel-x, acrylic extensions, and long-wear BIAB overlays.',
+    bankName: 'GTBank',
+    accountNumber: '0123456789',
+    accountName: 'AURIC NAILS BEAUTY',
+    paymentInstructions: 'Please use your Booking Ref ID as payment reference or narration. Send payment screenshot on WhatsApp to confirm immediately.'
   });
   const [newTimeSlotInput, setNewTimeSlotInput] = useState('');
   const [optionsLoading, setOptionsLoading] = useState(true);
@@ -1344,6 +1349,94 @@ export default function AdminDashboard() {
               </div>
             </div>
 
+            {/* 2. BANK ACCOUNT & DIRECT PAYMENT SETTINGS */}
+            <div style={{ ...S.card, padding: 20, marginBottom: 24, border: '1px solid #CBD5E1', background: 'linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%)' }}>
+              <div style={{ marginBottom: 16 }}>
+                <h3 style={{ ...S.cardTitle, display: 'flex', alignItems: 'center', gap: 8, color: '#1E1B4B' }}>
+                  <Building size={20} color="#D4AF37" /> Bank Account & Direct Payment Settings
+                </h3>
+                <p style={{ fontSize: 13, color: '#64748B', margin: '4px 0 0' }}>
+                  Set up your studio bank account details so clients can choose to transfer funds immediately after booking.
+                </p>
+              </div>
+
+              <div className="admin-form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
+                <div>
+                  <label style={S.formLabel}>Bank Name</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. GTBank / Moniepoint / Zenith"
+                    value={studioConfig.bankName || ''}
+                    onChange={(e) => setStudioConfig({ ...studioConfig, bankName: e.target.value })}
+                    style={S.formInput}
+                  />
+                </div>
+
+                <div>
+                  <label style={S.formLabel}>Account Number</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 0123456789"
+                    value={studioConfig.accountNumber || ''}
+                    onChange={(e) => setStudioConfig({ ...studioConfig, accountNumber: e.target.value })}
+                    style={{ ...S.formInput, fontWeight: 700, letterSpacing: '1px', fontFamily: 'monospace' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={S.formLabel}>Account Name</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. AURIC NAILS BEAUTY"
+                    value={studioConfig.accountName || ''}
+                    onChange={(e) => setStudioConfig({ ...studioConfig, accountName: e.target.value })}
+                    style={S.formInput}
+                  />
+                </div>
+              </div>
+
+              <div style={{ marginTop: 16 }}>
+                <label style={S.formLabel}>Payment Instructions & Narration Note</label>
+                <textarea
+                  rows={2}
+                  value={studioConfig.paymentInstructions || ''}
+                  onChange={(e) => setStudioConfig({ ...studioConfig, paymentInstructions: e.target.value })}
+                  placeholder="e.g. Please use your Booking Ref ID as payment reference. Send receipt on WhatsApp for instant confirmation."
+                  style={{ ...S.formInput, width: '100%', resize: 'vertical' }}
+                />
+              </div>
+
+              {/* Live Preview Card for Admin */}
+              <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px dashed #CBD5E1' }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 10 }}>
+                  👁️ Customer View Live Preview (Bank Card on Confirmation Screen)
+                </span>
+                <div style={{
+                  maxWidth: 420,
+                  background: 'linear-gradient(135deg, #831843 0%, #BE185D 45%, #9D174D 80%, #500724 100%)',
+                  borderRadius: 16,
+                  padding: '16px 18px',
+                  color: '#FFFFFF',
+                  boxShadow: '0 8px 24px rgba(190,24,93,0.3)'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                    <span style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: '#FDE047', background: 'rgba(253,224,71,0.15)', padding: '2px 8px', borderRadius: 12 }}>
+                      {studioConfig.bankName || 'GTBank'}
+                    </span>
+                    <Building size={16} color="#FDE047" />
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#CBD5E1' }}>Account Number</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 800, fontFamily: 'monospace', letterSpacing: '2px', margin: '2px 0 8px 0', color: '#FFF' }}>
+                    {studioConfig.accountNumber || '0123456789'}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#CBD5E1' }}>Account Name</div>
+                  <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#F3F4F6' }}>
+                    {studioConfig.accountName || 'AURIC NAILS BEAUTY'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
 
 
             {/* 3. ADMIN SECURITY & PASSCODE */}
@@ -2083,6 +2176,26 @@ export default function AdminDashboard() {
   );
 }
 
+const formatBookingCreationDate = (appt) => {
+  if (appt.bookingDate) {
+    return `${appt.bookingDate}${appt.bookingTime ? ` @ ${appt.bookingTime}` : ''}`;
+  }
+  if (appt.createdAt) {
+    try {
+      let d;
+      if (typeof appt.createdAt.toDate === 'function') {
+        d = appt.createdAt.toDate();
+      } else if (appt.createdAt.seconds) {
+        d = new Date(appt.createdAt.seconds * 1000);
+      }
+      if (d && !isNaN(d.getTime())) {
+        return d.toISOString().split('T')[0];
+      }
+    } catch (e) {}
+  }
+  return '—';
+};
+
 // ─── Appointments Table ───────────────────────────────────────────────────────
 function AppointmentsTable({ appointments, onStatusChange, onDelete, full }) {
   const [openMenu, setOpenMenu] = useState(null);
@@ -2092,7 +2205,7 @@ function AppointmentsTable({ appointments, onStatusChange, onDelete, full }) {
       <table style={S.table}>
         <thead>
           <tr>
-            {['Booking ID', 'Client', 'Service', 'Date & Time', 'Total', 'Status', 'Actions'].map(h => (
+            {['Booking ID', 'Client', 'Service', 'Appointment Day/Time', 'Booked On', 'Total', 'Status', 'Actions'].map(h => (
               <th key={h} style={S.th}>{h}</th>
             ))}
           </tr>
@@ -2114,8 +2227,13 @@ function AppointmentsTable({ appointments, onStatusChange, onDelete, full }) {
                 </td>
                 <td style={S.td}><span style={{ fontSize: '0.85rem' }}>{appt.serviceName || appt.service || '—'}</span></td>
                 <td style={S.td}>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{appt.date || '—'}</div>
-                  <div style={{ color: '#888', fontSize: '0.78rem' }}>{appt.time || ''}</div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#111' }}>{appt.date || '—'}</div>
+                  <div style={{ color: '#BE185D', fontSize: '0.78rem', fontWeight: 700 }}>{appt.time || ''}</div>
+                </td>
+                <td style={S.td}>
+                  <span style={{ fontSize: '0.82rem', color: '#475569', fontWeight: 600, background: '#F1F5F9', padding: '3px 8px', borderRadius: 6 }}>
+                    {formatBookingCreationDate(appt)}
+                  </span>
                 </td>
                 <td style={S.td}><span style={{ fontWeight: 700 }}>₦{(appt.totalPrice || 0).toLocaleString()}</span></td>
                 <td style={S.td}>
